@@ -2,6 +2,7 @@ package com.mishindmitriy.homethings.client;
 
 import android.databinding.DataBindingUtil;
 import android.os.Bundle;
+import android.view.View;
 
 import com.arellomobile.mvp.MvpAppCompatActivity;
 import com.arellomobile.mvp.presenter.InjectPresenter;
@@ -19,12 +20,28 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
     }
 
     @Override
-    public void updateData(MonitoringData monitoringData) {
+    public void updateHeatingData(HeatingData data) {
+        binding.progressBar.setVisibility(View.GONE);
+        binding.temp.setVisibility(View.VISIBLE);
+        binding.humidity.setVisibility(View.VISIBLE);
+        binding.hostOnline.setVisibility(View.VISIBLE);
         binding.temp.setText(
-                String.format("%.2f C", monitoringData.getTemp())
+                String.format("Temp: %.1f C", data.getTemp())
         );
         binding.humidity.setText(
-                String.format("%.2f %s", monitoringData.getHumidity(), "%")
+                String.format("Humidity: %.0f %s", data.getHumidity(), "%")
+        );
+        binding.hostOnline.setText(
+                String.format(
+                        "Heating host is\n%s",
+                        data.hostIsOnline()
+                                ? " online"
+                                :
+                                String.format(
+                                        "offline, last update %s",
+                                        data.getLastUpdate().toString("dd MMMM HH:mm")
+                                )
+                )
         );
     }
 }
