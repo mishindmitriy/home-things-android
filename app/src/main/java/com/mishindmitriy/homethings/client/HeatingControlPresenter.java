@@ -4,9 +4,7 @@ import com.arellomobile.mvp.InjectViewState;
 import com.arellomobile.mvp.MvpPresenter;
 import com.google.firebase.database.FirebaseDatabase;
 
-import io.reactivex.Flowable;
 import io.reactivex.disposables.CompositeDisposable;
-import io.reactivex.functions.BiFunction;
 import io.reactivex.functions.Consumer;
 
 
@@ -21,21 +19,20 @@ public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
     protected void onFirstViewAttach() {
         super.onFirstViewAttach();
         compositeDisposable.add(
-                Flowable.combineLatest(
-                        FirebaseHelper.createHostOnlineFlowable(),
-                        FirebaseHelper.createMonitoringFlowable(),
-                        new BiFunction<Boolean, HeatingData, HeatingData>() {
+                FirebaseHelper.createHostOnlineFlowable()
+                        .subscribe(new Consumer<Boolean>() {
                             @Override
-                            public HeatingData apply(Boolean hostIsOnline, HeatingData heatingData) throws Exception {
-                                heatingData.setHostIsOnline(hostIsOnline);
-                                return heatingData;
+                            public void accept(Boolean online) throws Exception {
+                                getViewState().setHostOnline(online);
                             }
-                        }
-                )
+                        })
+        );
+        compositeDisposable.add(
+                FirebaseHelper.createHeatingMonitoringFlowable()
                         .subscribe(new Consumer<HeatingData>() {
                             @Override
-                            public void accept(HeatingData HeatingData) throws Exception {
-                                getViewState().updateHeatingData(HeatingData);
+                            public void accept(HeatingData heatingData) throws Exception {
+                                getViewState().updateHeatingData(heatingData);
                             }
                         })
         );

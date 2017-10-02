@@ -4,9 +4,8 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
-
-import org.joda.time.DateTime;
 
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
@@ -19,8 +18,9 @@ import io.reactivex.functions.Cancellable;
  */
 
 public class FirebaseHelper {
-    private static DatabaseReference getHeatingMonitoringReference() {
-        return FirebaseDatabase.getInstance().getReference("heating/monitor");
+    private static Query getHeatingMonitoringReference() {
+        return FirebaseDatabase.getInstance().getReference("heating/monitor")
+                .orderByKey().limitToLast(1);
     }
 
     private static DatabaseReference getHostOnlineRef() {
@@ -57,23 +57,18 @@ public class FirebaseHelper {
         }, BackpressureStrategy.LATEST);
     }
 
-    public static Flowable<HeatingData> createMonitoringFlowable() {
+    public static Flowable<HeatingData> createHeatingMonitoringFlowable() {
         return Flowable.create(new FlowableOnSubscribe<HeatingData>() {
             @Override
             public void subscribe(final FlowableEmitter<HeatingData> e) throws Exception {
-                final DatabaseReference ref = FirebaseHelper.getHeatingMonitoringReference();
+                final Query query = FirebaseHelper.getHeatingMonitoringReference();
                 final ValueEventListener listener = new ValueEventListener() {
                     @Override
                     public void onDataChange(DataSnapshot dataSnapshot) {
                         if (dataSnapshot != null && dataSnapshot.exists()) {
-                            HeatingData data = new HeatingData();
-                            data.setTemp(dataSnapshot.child("temp").getValue(double.class));
-                            data.setTemp(dataSnapshot.child("humidity").getValue(double.class));
-                            data.setLastUpdate(
-                                    new DateTime(
-                                            dataSnapshot.child("lastUpdate").getValue(long.class)
-                                    )
-                            );
+                            HeatingData data = dataSnapshot.getChildren()
+                                    .iterator().next()
+                                    .getValue(HeatingData.class);
                             e.onNext(data);
                         }
                     }
@@ -83,11 +78,11 @@ public class FirebaseHelper {
                         e.onError(databaseError.toException());
                     }
                 };
-                ref.addValueEventListener(listener);
+                query.addValueEventListener(listener);
                 e.setCancellable(new Cancellable() {
                     @Override
                     public void cancel() throws Exception {
-                        ref.removeEventListener(listener);
+                        query.removeEventListener(listener);
                     }
                 });
             }

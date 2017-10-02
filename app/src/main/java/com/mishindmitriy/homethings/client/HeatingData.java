@@ -9,15 +9,14 @@ import org.joda.time.DateTime;
 public class HeatingData {
     private double temp;
     private double humidity;
-    private boolean hostIsOnline;
-    private DateTime lastUpdate;
+    private long timestamp;
 
-    public DateTime getLastUpdate() {
-        return lastUpdate;
+    public long getTimestamp() {
+        return timestamp;
     }
 
-    public void setLastUpdate(DateTime lastUpdate) {
-        this.lastUpdate = lastUpdate;
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
     }
 
     public double getTemp() {
@@ -36,11 +35,7 @@ public class HeatingData {
         this.humidity = humidity;
     }
 
-    public void setHostIsOnline(Boolean hostIsOnline) {
-        this.hostIsOnline = hostIsOnline;
-    }
-
-    public boolean hostIsOnline() {
-        return hostIsOnline;
+    public DateTime getJodaTime() {
+        return new DateTime(timestamp);
     }
 }

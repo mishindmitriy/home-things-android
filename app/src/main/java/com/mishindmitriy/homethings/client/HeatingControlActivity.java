@@ -24,23 +24,26 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
         binding.progressBar.setVisibility(View.GONE);
         binding.temp.setVisibility(View.VISIBLE);
         binding.humidity.setVisibility(View.VISIBLE);
-        binding.hostOnline.setVisibility(View.VISIBLE);
+        binding.lastUpdate.setVisibility(View.VISIBLE);
         binding.temp.setText(
                 String.format("Temp: %.1f C", data.getTemp())
         );
         binding.humidity.setText(
                 String.format("Humidity: %.0f %s", data.getHumidity(), "%")
         );
+        binding.lastUpdate.setText(
+                String.format(
+                        "last update %s", data.getJodaTime().toString("dd MMMM HH:mm")
+                )
+        );
+    }
+
+    @Override
+    public void setHostOnline(Boolean online) {
         binding.hostOnline.setText(
                 String.format(
-                        "Heating host is\n%s",
-                        data.hostIsOnline()
-                                ? " online"
-                                :
-                                String.format(
-                                        "offline, last update %s",
-                                        data.getLastUpdate().toString("dd MMMM HH:mm")
-                                )
+                        "Heating host is %s",
+                        online ? "online" : "offline"
                 )
         );
     }
