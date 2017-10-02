@@ -33,7 +33,7 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
         );
         binding.lastUpdate.setText(
                 String.format(
-                        "last update %s", data.getJodaTime().toString("dd MMMM HH:mm")
+                        "last update %s", data.getJodaTime().toString("dd MMMM HH:mm:ss")
                 )
         );
     }
