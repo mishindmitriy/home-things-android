@@ -16,6 +16,7 @@ import io.reactivex.ObservableEmitter;
 import io.reactivex.ObservableOnSubscribe;
 import io.reactivex.functions.Cancellable;
 import io.reactivex.functions.Function;
+import io.reactivex.functions.Predicate;
 
 /**
  * Created by Dmitry on 30.09.17.
@@ -70,6 +71,12 @@ public class FirebaseHelper {
 
     public static Observable<MonitoringData> createMonitoringObservable(final Query query) {
         return createQueryObservable(query)
+                .filter(new Predicate<DataSnapshot>() {
+                    @Override
+                    public boolean test(DataSnapshot dataSnapshot) throws Exception {
+                        return dataSnapshot.exists();
+                    }
+                })
                 .map(new Function<DataSnapshot, MonitoringData>() {
                     @Override
                     public MonitoringData apply(DataSnapshot dataSnapshot) throws Exception {
@@ -87,9 +94,7 @@ public class FirebaseHelper {
                 final ValueEventListener listener = new ValueEventListener() {
                     @Override
                     public void onDataChange(DataSnapshot dataSnapshot) {
-                        if (dataSnapshot != null && dataSnapshot.exists()) {
-                            e.onNext(dataSnapshot);
-                        }
+                        e.onNext(dataSnapshot);
                     }
 
                     @Override
@@ -113,7 +118,8 @@ public class FirebaseHelper {
                 .map(new Function<DataSnapshot, Double>() {
                     @Override
                     public Double apply(DataSnapshot dataSnapshot) throws Exception {
-                        return dataSnapshot.getValue(double.class);
+                        if (dataSnapshot.exists()) return dataSnapshot.getValue(double.class);
+                        else return (double) PreferencesHelper.get().getDaySettingTemperature();
                     }
                 });
     }

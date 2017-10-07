@@ -33,6 +33,6 @@ public class PreferencesHelper {
     }
 
     public int getDaySettingTemperature() {
-        return preferences.getInt(KEY_SETTING_DAY_TEMP, 0);
+        return preferences.getInt(KEY_SETTING_DAY_TEMP, HeatingControlActivity.MIN_TEMPERATURE);
     }
 }

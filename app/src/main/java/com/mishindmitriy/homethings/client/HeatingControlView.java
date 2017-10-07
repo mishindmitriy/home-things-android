@@ -16,6 +16,4 @@ public interface HeatingControlView extends MvpView {
     void updateHumidityData(MonitoringData monitoringData);
 
     void updateSettingDayTemp(int settingDayTemp);
-
-    void updateFirebaseSettingTemp(double settingDayTemp);
 }

@@ -2,6 +2,7 @@ package com.mishindmitriy.homethings.client;
 
 import android.databinding.DataBindingUtil;
 import android.os.Bundle;
+import android.transition.TransitionManager;
 import android.view.View;
 import android.widget.SeekBar;
 
@@ -10,6 +11,8 @@ import com.arellomobile.mvp.presenter.InjectPresenter;
 import com.mishindmitriy.homethings.client.databinding.ActivityHeatingControlBinding;
 
 public class HeatingControlActivity extends MvpAppCompatActivity implements HeatingControlView {
+    public static final int MAX_TEMPERATURE = 30;
+    public static final int MIN_TEMPERATURE = 18;
     @InjectPresenter
     HeatingControlPresenter presenter;
     private ActivityHeatingControlBinding binding;
@@ -18,17 +21,15 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = DataBindingUtil.setContentView(this, R.layout.activity_heating_control);
-        final int maxTemperature = 30;
-        final int minTemperature = 18;
-        final int temperatureDelta = maxTemperature - minTemperature;
+        final int temperatureDelta = MAX_TEMPERATURE - MIN_TEMPERATURE;
         binding.dayTempSeekBar.incrementProgressBy(1);
         binding.dayTempSeekBar.setMax(temperatureDelta);
-        binding.dayTempSeekBar.setProgress(PreferencesHelper.get().getDaySettingTemperature() - 18);
+        binding.dayTempSeekBar.setProgress(PreferencesHelper.get().getDaySettingTemperature() - MIN_TEMPERATURE);
         binding.dayTempSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
-                    presenter.setDayTemperature(minTemperature + progress);
+                    presenter.setDayTemperature(MIN_TEMPERATURE + progress);
                 }
 
             }
@@ -47,6 +48,7 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
 
     @Override
     public void updateTemperatureData(MonitoringData data) {
+        beginTransaction();
         binding.progressBar.setVisibility(View.GONE);
         binding.temperature.setVisibility(View.VISIBLE);
         binding.temperature.setText(
@@ -60,26 +62,24 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
         );
     }
 
-    @Override
-    public void updateSettingDayTemp(int settingDayTemp) {
-        binding.progressBar.setVisibility(View.GONE);
-        binding.settingTemp.setVisibility(View.VISIBLE);
-        binding.settingTemp.setText(
-                String.format("Setting temp: %d ℃", settingDayTemp)
-        );
+    private void beginTransaction() {
+        TransitionManager.beginDelayedTransition(binding.mainLayout);
     }
 
     @Override
-    public void updateFirebaseSettingTemp(double settingDayTemp) {
-        binding.progressBar.setVisibility(View.GONE);
-        binding.firebaseTemp.setVisibility(View.VISIBLE);
-        binding.firebaseTemp.setText(
-                String.format("Firebase temp: %.0f ℃", settingDayTemp)
+    public void updateSettingDayTemp(int settingDayTemp) {
+        beginTransaction();
+        binding.settingTemp.setVisibility(View.VISIBLE);
+        binding.dayTempSeekBar.setVisibility(View.VISIBLE);
+        binding.settingTemp.setText(
+                String.format("Setting temp: %d ℃", settingDayTemp)
         );
+        binding.dayTempSeekBar.setProgress(settingDayTemp - MIN_TEMPERATURE);
     }
 
     @Override
     public void updateHumidityData(MonitoringData data) {
+        beginTransaction();
         binding.progressBar.setVisibility(View.GONE);
         binding.humidity.setVisibility(View.VISIBLE);
         binding.humidity.setText(
