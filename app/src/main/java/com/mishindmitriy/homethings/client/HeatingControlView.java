@@ -9,7 +9,13 @@ import com.arellomobile.mvp.viewstate.strategy.StateStrategyType;
  */
 @StateStrategyType(SingleStateStrategy.class)
 public interface HeatingControlView extends MvpView {
-    void updateHeatingData(HeatingData monitoringData);
+    void updateTemperatureData(MonitoringData monitoringData);
 
     void setHostOnline(Boolean online);
+
+    void updateHumidityData(MonitoringData monitoringData);
+
+    void updateSettingDayTemp(int settingDayTemp);
+
+    void updateFirebaseSettingTemp(double settingDayTemp);
 }

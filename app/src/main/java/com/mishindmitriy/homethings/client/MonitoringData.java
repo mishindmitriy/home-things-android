@@ -6,9 +6,8 @@ import org.joda.time.DateTime;
  * Created by Dmitry on 30.09.17.
  */
 
-public class HeatingData {
-    private double temp;
-    private double humidity;
+public class MonitoringData {
+    private double value;
     private long timestamp;
 
     public long getTimestamp() {
@@ -19,20 +18,12 @@ public class HeatingData {
         this.timestamp = timestamp;
     }
 
-    public double getTemp() {
-        return temp;
+    public double getValue() {
+        return value;
     }
 
-    public void setTemp(double temp) {
-        this.temp = temp;
-    }
-
-    public double getHumidity() {
-        return humidity;
-    }
-
-    public void setHumidity(double humidity) {
-        this.humidity = humidity;
+    public void setValue(double value) {
+        this.value = value;
     }
 
     public DateTime getJodaTime() {

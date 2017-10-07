@@ -14,5 +14,6 @@ public class Application extends android.app.Application {
         super.onCreate();
         JodaTimeAndroid.init(this);
         FirebaseApp.initializeApp(this);
+        PreferencesHelper.init(this);
     }
 }
