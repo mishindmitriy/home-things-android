@@ -26,6 +26,7 @@ public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
     public HeatingControlPresenter() {
         compositeDisposable.add(
                 settingTempSubject
+                        .distinctUntilChanged()
                         .doOnNext(new Consumer<Integer>() {
                             @Override
                             public void accept(Integer temperature) throws Exception {

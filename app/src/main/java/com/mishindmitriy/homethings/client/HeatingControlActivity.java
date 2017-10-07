@@ -2,7 +2,6 @@ package com.mishindmitriy.homethings.client;
 
 import android.databinding.DataBindingUtil;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.SeekBar;
 
@@ -21,14 +20,17 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
         binding = DataBindingUtil.setContentView(this, R.layout.activity_heating_control);
         final int maxTemperature = 30;
         final int minTemperature = 18;
+        final int temperatureDelta = maxTemperature - minTemperature;
+        binding.dayTempSeekBar.incrementProgressBy(1);
+        binding.dayTempSeekBar.setMax(temperatureDelta);
+        binding.dayTempSeekBar.setProgress(PreferencesHelper.get().getDaySettingTemperature() - 18);
         binding.dayTempSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
-                    int settingTemp = (maxTemperature - minTemperature) / 100 * progress;
-                    Log.d("testtt", "setting temp " + settingTemp);
-                    presenter.setDayTemperature(settingTemp);
+                    presenter.setDayTemperature(minTemperature + progress);
                 }
+
             }
 
             @Override
