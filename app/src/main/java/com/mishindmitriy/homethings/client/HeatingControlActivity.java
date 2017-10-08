@@ -1,14 +1,27 @@
 package com.mishindmitriy.homethings.client;
 
 import android.databinding.DataBindingUtil;
+import android.graphics.Color;
 import android.os.Bundle;
-import android.transition.TransitionManager;
+import android.support.annotation.ColorInt;
 import android.view.View;
 import android.widget.SeekBar;
+import android.widget.TextView;
 
 import com.arellomobile.mvp.MvpAppCompatActivity;
 import com.arellomobile.mvp.presenter.InjectPresenter;
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.AxisBase;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
+import com.github.mikephil.charting.formatter.IAxisValueFormatter;
 import com.mishindmitriy.homethings.client.databinding.ActivityHeatingControlBinding;
+
+import org.joda.time.DateTime;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class HeatingControlActivity extends MvpAppCompatActivity implements HeatingControlView {
     public static final int MAX_TEMPERATURE = 30;
@@ -47,28 +60,27 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
     }
 
     @Override
-    public void updateTemperatureData(MonitoringData data) {
-        beginTransaction();
-        binding.progressBar.setVisibility(View.GONE);
-        binding.temperature.setVisibility(View.VISIBLE);
-        binding.temperature.setText(
-                String.format("Temp: %.1f ℃", data.getValue())
-        );
-        binding.temperatureLastUpdate.setVisibility(View.VISIBLE);
-        binding.temperatureLastUpdate.setText(
-                String.format(
-                        "last update %s", data.getJodaTime().toString("dd MMMM HH:mm:ss")
-                )
+    public void updateTemperatureData(final List<MonitoringData> data) {
+        updateData(
+                binding.temperatureChart,
+                binding.temperatureLastUpdate,
+                data,
+                Color.RED,
+                "Temperature",
+                "℃"
         );
     }
 
-    private void beginTransaction() {
-        TransitionManager.beginDelayedTransition(binding.mainLayout);
+    private List<Entry> createEntryList(List<MonitoringData> monitoringData) {
+        final List<Entry> entries = new ArrayList<>();
+        for (int i = 1; i < monitoringData.size(); i++) {
+            entries.add(new Entry(i, (float) monitoringData.get(i).getValue()));
+        }
+        return entries;
     }
 
     @Override
     public void updateSettingDayTemp(int settingDayTemp) {
-        beginTransaction();
         binding.settingTemp.setVisibility(View.VISIBLE);
         binding.dayTempSeekBar.setVisibility(View.VISIBLE);
         binding.settingTemp.setText(
@@ -78,17 +90,51 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
     }
 
     @Override
-    public void updateHumidityData(MonitoringData data) {
-        beginTransaction();
-        binding.progressBar.setVisibility(View.GONE);
-        binding.humidity.setVisibility(View.VISIBLE);
-        binding.humidity.setText(
-                String.format("Humidity: %.0f %s", data.getValue(), "%")
+    public void updateHumidityData(final List<MonitoringData> data) {
+        updateData(
+                binding.humidityChart,
+                binding.humidityLastUpdate,
+                data,
+                Color.BLUE,
+                "Humidity",
+                "%"
         );
-        binding.humidityLastUpdate.setVisibility(View.VISIBLE);
-        binding.humidityLastUpdate.setText(
+    }
+
+    private void updateData(LineChart chart,
+                            TextView lastUpdate,
+                            final List<MonitoringData> data,
+                            @ColorInt int color,
+                            String label,
+                            final String yAxisSymbol) {
+        binding.progressBar.setVisibility(View.GONE);
+        LineDataSet dataSet = new LineDataSet(createEntryList(data), label);
+        dataSet.setColor(color);
+        dataSet.setValueTextColor(Color.BLACK);
+        chart.getXAxis().setValueFormatter(new IAxisValueFormatter() {
+            @Override
+            public String getFormattedValue(float value, AxisBase axis) {
+                final DateTime dateTime = data.get((int) value).getJodaTime();
+                return DateTime.now().toLocalDate().isEqual(dateTime.toLocalDate())
+                        ? dateTime.toString("HH:mm:ss")
+                        : dateTime.toString("dd MMMM HH:mm:ss");
+            }
+        });
+        IAxisValueFormatter yFormatter = new IAxisValueFormatter() {
+            @Override
+            public String getFormattedValue(float value, AxisBase axis) {
+                return String.format("%.1f %s", value, yAxisSymbol);
+            }
+        };
+        chart.getAxisLeft().setValueFormatter(yFormatter);
+        chart.getAxisRight().setValueFormatter(yFormatter);
+        chart.setData(new LineData(dataSet));
+        chart.invalidate();
+        chart.setVisibility(View.VISIBLE);
+        lastUpdate.setVisibility(View.VISIBLE);
+        lastUpdate.setText(
                 String.format(
-                        "last update %s", data.getJodaTime().toString("dd MMMM HH:mm:ss")
+                        "last update %s", data.get(data.size() - 1).getJodaTime().toString("dd MMMM HH:mm:ss")
                 )
         );
     }

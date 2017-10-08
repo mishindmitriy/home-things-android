@@ -8,6 +8,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.MutableData;
 import com.google.firebase.database.Transaction;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import io.reactivex.disposables.CompositeDisposable;
@@ -104,9 +105,9 @@ public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
                 FirebaseHelper.createMonitoringObservable(
                         FirebaseHelper.getTempMonitoringReference()
                 )
-                        .subscribe(new Consumer<MonitoringData>() {
+                        .subscribe(new Consumer<List<MonitoringData>>() {
                             @Override
-                            public void accept(MonitoringData monitoringData) throws Exception {
+                            public void accept(List<MonitoringData> monitoringData) throws Exception {
                                 getViewState().updateTemperatureData(monitoringData);
                             }
                         })
@@ -115,9 +116,9 @@ public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
                 FirebaseHelper.createMonitoringObservable(
                         FirebaseHelper.getHumidityMonitoringReference()
                 )
-                        .subscribe(new Consumer<MonitoringData>() {
+                        .subscribe(new Consumer<List<MonitoringData>>() {
                             @Override
-                            public void accept(MonitoringData monitoringData) throws Exception {
+                            public void accept(List<MonitoringData> monitoringData) throws Exception {
                                 getViewState().updateHumidityData(monitoringData);
                             }
                         })

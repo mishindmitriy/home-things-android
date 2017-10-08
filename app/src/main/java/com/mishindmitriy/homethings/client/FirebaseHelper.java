@@ -7,6 +7,9 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
 import io.reactivex.FlowableEmitter;
@@ -26,13 +29,13 @@ public class FirebaseHelper {
     public static Query getTempMonitoringReference() {
         return FirebaseDatabase.getInstance().getReference("heating/monitoring/temp")
                 .orderByChild("timestamp")
-                .limitToLast(1);
+                .limitToLast(30);
     }
 
     public static Query getHumidityMonitoringReference() {
         return FirebaseDatabase.getInstance().getReference("heating/monitoring/humidity")
                 .orderByChild("timestamp")
-                .limitToLast(1);
+                .limitToLast(30);
     }
 
     private static DatabaseReference getHostOnlineRef() {
@@ -69,7 +72,7 @@ public class FirebaseHelper {
         }, BackpressureStrategy.LATEST);
     }
 
-    public static Observable<MonitoringData> createMonitoringObservable(final Query query) {
+    public static Observable<List<MonitoringData>> createMonitoringObservable(final Query query) {
         return createQueryObservable(query)
                 .filter(new Predicate<DataSnapshot>() {
                     @Override
@@ -77,12 +80,14 @@ public class FirebaseHelper {
                         return dataSnapshot.exists();
                     }
                 })
-                .map(new Function<DataSnapshot, MonitoringData>() {
+                .map(new Function<DataSnapshot, List<MonitoringData>>() {
                     @Override
-                    public MonitoringData apply(DataSnapshot dataSnapshot) throws Exception {
-                        return dataSnapshot.getChildren()
-                                .iterator().next()
-                                .getValue(MonitoringData.class);
+                    public List<MonitoringData> apply(DataSnapshot dataSnapshot) throws Exception {
+                        final List<MonitoringData> dataList = new ArrayList<>();
+                        for (DataSnapshot ds : dataSnapshot.getChildren()) {
+                            dataList.add(ds.getValue(MonitoringData.class));
+                        }
+                        return dataList;
                     }
                 });
     }
