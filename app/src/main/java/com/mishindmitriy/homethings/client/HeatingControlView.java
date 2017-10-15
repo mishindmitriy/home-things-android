@@ -13,11 +13,15 @@ import java.util.List;
 public interface HeatingControlView extends MvpView {
     void updateTemperatureData(List<MonitoringData> monitoringData);
 
-    void setHostOnline(Boolean online);
+    void setHostOnline(boolean online);
 
     void updateHumidityData(List<MonitoringData> monitoringData);
 
-    void updateSettingDayTemp(int dayTemperature);
+    void updateSettingDayTemp(double dayTemperature);
 
-    void updateSettingNightTemp(int nightTemperature);
+    void updateSettingNightTemp(double nightTemperature);
+
+    void updateMaintainedTemperature(double maintainedTemperature);
+
+    void updateBoilerIsRun(boolean boilerIsRun);
 }

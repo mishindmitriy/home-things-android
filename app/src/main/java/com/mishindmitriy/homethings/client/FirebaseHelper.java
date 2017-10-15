@@ -124,7 +124,7 @@ public class FirebaseHelper {
                     @Override
                     public Double apply(DataSnapshot dataSnapshot) throws Exception {
                         if (dataSnapshot.exists()) return dataSnapshot.getValue(double.class);
-                        else return (double) PreferencesHelper.get().getDaySettingTemperature();
+                        else return 18.0;
                     }
                 });
     }
@@ -139,12 +139,38 @@ public class FirebaseHelper {
                     @Override
                     public Double apply(DataSnapshot dataSnapshot) throws Exception {
                         if (dataSnapshot.exists()) return dataSnapshot.getValue(double.class);
-                        else return (double) PreferencesHelper.get().getNightSettingTemperature();
+                        else return 18.0;
                     }
                 });
     }
 
     public static DatabaseReference getSettingNightTempRef() {
         return FirebaseDatabase.getInstance().getReference("heating/settings/nightTemp");
+    }
+
+    public static Observable<Double> createMaintainedTemperatureObservable() {
+        return createQueryObservable(
+                FirebaseDatabase.getInstance().getReference("heating/monitoring/maintainedTemperature")
+        )
+                .map(new Function<DataSnapshot, Double>() {
+                    @Override
+                    public Double apply(DataSnapshot dataSnapshot) throws Exception {
+                        if (dataSnapshot.exists()) return dataSnapshot.getValue(double.class);
+                        else return 18.0;
+                    }
+                });
+    }
+
+    public static Observable<Boolean> createBoilerIsRunObservable() {
+        return createQueryObservable(
+                FirebaseDatabase.getInstance().getReference("heating/monitoring/boilerIsRun")
+        )
+                .map(new Function<DataSnapshot, Boolean>() {
+                    @Override
+                    public Boolean apply(DataSnapshot dataSnapshot) throws Exception {
+                        if (dataSnapshot.exists()) return dataSnapshot.getValue(boolean.class);
+                        else return false;
+                    }
+                });
     }
 }

@@ -33,6 +33,30 @@
                 app:layout_constraintRight_toRightOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/progressBar" />
 
+            <TextView
+                android:id="@+id/maintainedTemperature"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="16dp"
+                android:gravity="center"
+                android:textSize="16sp"
+                android:visibility="gone"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/hostOnline" />
+
+            <TextView
+                android:id="@+id/boilerIsRun"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="16dp"
+                android:gravity="center"
+                android:textSize="16sp"
+                android:visibility="gone"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/maintainedTemperature" />
+
             <com.github.mikephil.charting.charts.LineChart
                 android:id="@+id/temperatureChart"
                 android:layout_width="match_parent"
@@ -41,7 +65,7 @@
                 android:visibility="gone"
                 app:layout_constraintLeft_toLeftOf="parent"
                 app:layout_constraintRight_toRightOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/hostOnline" />
+                app:layout_constraintTop_toBottomOf="@id/boilerIsRun" />
 
             <TextView
                 android:id="@+id/temperatureLastUpdate"
@@ -98,7 +122,6 @@
                 app:layout_constraintLeft_toLeftOf="parent"
                 app:layout_constraintRight_toRightOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/settingNightTemp" />
-
 
             <com.github.mikephil.charting.charts.LineChart
                 android:id="@+id/humidityChart"

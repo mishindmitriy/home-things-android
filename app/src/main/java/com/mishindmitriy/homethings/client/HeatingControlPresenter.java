@@ -9,10 +9,8 @@ import com.google.firebase.database.MutableData;
 import com.google.firebase.database.Transaction;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import io.reactivex.disposables.CompositeDisposable;
-import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Consumer;
 import io.reactivex.subjects.BehaviorSubject;
 
@@ -25,121 +23,100 @@ public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
     private final CompositeDisposable compositeDisposable = new CompositeDisposable();
     private final BehaviorSubject<Integer> settingDayTempSubject = BehaviorSubject.create();
     private final BehaviorSubject<Integer> settingNightTempSubject = BehaviorSubject.create();
-    private final Disposable firstLoadDaySettingTemperatureDisposable;
-    private final Disposable firstLoadNightSettingTemperatureDisposable;
-    private Disposable dayTempSyncDisposable;
-    private Disposable nightTempSyncDisposable;
 
     public HeatingControlPresenter() {
+        subscribeToFirebaseTempValues();
+        subscribeToLocalTempValueAndSync();
         compositeDisposable.add(
-                settingDayTempSubject
-                        .startWith(PreferencesHelper.get().getDaySettingTemperature())
-                        .distinctUntilChanged()
-                        .doOnNext(new Consumer<Integer>() {
+                FirebaseHelper.createMaintainedTemperatureObservable()
+                        .subscribe(new Consumer<Double>() {
                             @Override
-                            public void accept(Integer temperature) throws Exception {
-                                PreferencesHelper.get().setDayTemperature(temperature);
+                            public void accept(Double maintainedTemperature) throws Exception {
+                                getViewState().updateMaintainedTemperature(maintainedTemperature);
                             }
                         })
+        );
+        compositeDisposable.add(
+                FirebaseHelper.createBoilerIsRunObservable()
+                        .subscribe(new Consumer<Boolean>() {
+                            @Override
+                            public void accept(Boolean boilerIsRun) throws Exception {
+                                getViewState().updateBoilerIsRun(boilerIsRun);
+                            }
+                        })
+        );
+    }
+
+    private void subscribeToLocalTempValueAndSync() {
+        compositeDisposable.add(
+                settingDayTempSubject
+                        .distinctUntilChanged()
                         .subscribe(new Consumer<Integer>() {
                             @Override
-                            public void accept(Integer temperature) throws Exception {
-                                getViewState().updateSettingDayTemp(temperature);
+                            public void accept(final Integer integer) throws Exception {
+                                FirebaseHelper.getSettingDayTempRef()
+                                        .runTransaction(new Transaction.Handler() {
+                                            @Override
+                                            public Transaction.Result doTransaction(MutableData mutableData) {
+                                                mutableData.setValue(integer);
+                                                return Transaction.success(mutableData);
+                                            }
+
+                                            @Override
+                                            public void onComplete(DatabaseError databaseError, boolean b, DataSnapshot dataSnapshot) {
+
+                                            }
+                                        });
                             }
                         })
         );
         compositeDisposable.add(
                 settingNightTempSubject
-                        .startWith(PreferencesHelper.get().getNightSettingTemperature())
                         .distinctUntilChanged()
-                        .doOnNext(new Consumer<Integer>() {
-                            @Override
-                            public void accept(Integer temperature) throws Exception {
-                                PreferencesHelper.get().setNightTemperature(temperature);
-                            }
-                        })
                         .subscribe(new Consumer<Integer>() {
                             @Override
-                            public void accept(Integer temperature) throws Exception {
+                            public void accept(final Integer integer) throws Exception {
+                                FirebaseHelper.getSettingNightTempRef()
+                                        .runTransaction(new Transaction.Handler() {
+                                            @Override
+                                            public Transaction.Result doTransaction(MutableData mutableData) {
+                                                mutableData.setValue(integer);
+                                                return Transaction.success(mutableData);
+                                            }
+
+                                            @Override
+                                            public void onComplete(DatabaseError databaseError, boolean b, DataSnapshot dataSnapshot) {
+
+                                            }
+                                        });
+                            }
+                        })
+        );
+
+    }
+
+    private void subscribeToFirebaseTempValues() {
+        compositeDisposable.add(
+                FirebaseHelper.createSettingDayTempObservable()
+                        .subscribe(new Consumer<Double>() {
+                            @Override
+                            public void accept(Double temperature) throws Exception {
+                                getViewState().updateSettingDayTemp(temperature);
+                            }
+                        })
+        );
+        compositeDisposable.add(
+                FirebaseHelper.createSettingNightTempObservable()
+                        .subscribe(new Consumer<Double>() {
+                            @Override
+                            public void accept(Double temperature) throws Exception {
                                 getViewState().updateSettingNightTemp(temperature);
                             }
                         })
         );
-        firstLoadDaySettingTemperatureDisposable = FirebaseHelper.createSettingDayTempObservable()
-                .subscribe(new Consumer<Double>() {
-                    @Override
-                    public void accept(Double settingDayTemp) throws Exception {
-                        settingDayTempSubject.onNext((int) Math.round(settingDayTemp));
-                        firstLoadDaySettingTemperatureDisposable.dispose();
-                        startUploadTemp();
-                    }
-                });
-        compositeDisposable.add(firstLoadDaySettingTemperatureDisposable);
-        firstLoadNightSettingTemperatureDisposable = FirebaseHelper.createSettingNightTempObservable()
-                .subscribe(new Consumer<Double>() {
-                    @Override
-                    public void accept(Double settingNightTemp) throws Exception {
-                        settingNightTempSubject.onNext((int) Math.round(settingNightTemp));
-                        firstLoadNightSettingTemperatureDisposable.dispose();
-                        startUploadTemp();
-                    }
-                });
-        compositeDisposable.add(firstLoadDaySettingTemperatureDisposable);
-
-    }
-
-    private void startUploadTemp() {
-        dayTempSyncDisposable = settingDayTempSubject
-                .startWith(PreferencesHelper.get().getDaySettingTemperature())
-                .distinctUntilChanged()
-                .debounce(1, TimeUnit.SECONDS)
-                .subscribe(new Consumer<Integer>() {
-                    @Override
-                    public void accept(final Integer integer) throws Exception {
-                        FirebaseHelper.getSettingDayTempRef()
-                                .runTransaction(new Transaction.Handler() {
-                                    @Override
-                                    public Transaction.Result doTransaction(MutableData mutableData) {
-                                        mutableData.setValue(integer);
-                                        return Transaction.success(mutableData);
-                                    }
-
-                                    @Override
-                                    public void onComplete(DatabaseError databaseError, boolean b, DataSnapshot dataSnapshot) {
-
-                                    }
-                                });
-                    }
-                });
-        compositeDisposable.add(dayTempSyncDisposable);
-        nightTempSyncDisposable = settingNightTempSubject
-                .startWith(PreferencesHelper.get().getNightSettingTemperature())
-                .distinctUntilChanged()
-                .debounce(1, TimeUnit.SECONDS)
-                .subscribe(new Consumer<Integer>() {
-                    @Override
-                    public void accept(final Integer integer) throws Exception {
-                        FirebaseHelper.getSettingNightTempRef()
-                                .runTransaction(new Transaction.Handler() {
-                                    @Override
-                                    public Transaction.Result doTransaction(MutableData mutableData) {
-                                        mutableData.setValue(integer);
-                                        return Transaction.success(mutableData);
-                                    }
-
-                                    @Override
-                                    public void onComplete(DatabaseError databaseError, boolean b, DataSnapshot dataSnapshot) {
-
-                                    }
-                                });
-                    }
-                });
-        compositeDisposable.add(nightTempSyncDisposable);
     }
 
     public void setDayTemperature(int dayTemperature) {
-        firstLoadDaySettingTemperatureDisposable.dispose();
-        if (dayTempSyncDisposable == null) startUploadTemp();
         settingDayTempSubject.onNext(dayTemperature);
     }
 
@@ -202,8 +179,6 @@ public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
     }
 
     public void setNightTemperature(int nightTemperature) {
-        firstLoadNightSettingTemperatureDisposable.dispose();
-        if (nightTempSyncDisposable == null) startUploadTemp();
         settingNightTempSubject.onNext(nightTemperature);
     }
 }
