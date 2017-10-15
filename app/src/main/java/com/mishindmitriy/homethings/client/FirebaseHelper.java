@@ -132,4 +132,19 @@ public class FirebaseHelper {
     public static DatabaseReference getSettingDayTempRef() {
         return FirebaseDatabase.getInstance().getReference("heating/settings/dayTemp");
     }
+
+    public static Observable<Double> createSettingNightTempObservable() {
+        return createQueryObservable(getSettingNightTempRef())
+                .map(new Function<DataSnapshot, Double>() {
+                    @Override
+                    public Double apply(DataSnapshot dataSnapshot) throws Exception {
+                        if (dataSnapshot.exists()) return dataSnapshot.getValue(double.class);
+                        else return (double) PreferencesHelper.get().getNightSettingTemperature();
+                    }
+                });
+    }
+
+    public static DatabaseReference getSettingNightTempRef() {
+        return FirebaseDatabase.getInstance().getReference("heating/settings/nightTemp");
+    }
 }

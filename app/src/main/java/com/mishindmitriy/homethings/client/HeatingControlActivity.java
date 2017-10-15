@@ -57,6 +57,28 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
 
             }
         });
+        binding.nightTempSeekBar.incrementProgressBy(1);
+        binding.nightTempSeekBar.setMax(temperatureDelta);
+        binding.nightTempSeekBar.setProgress(PreferencesHelper.get().getNightSettingTemperature() - MIN_TEMPERATURE);
+        binding.nightTempSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    presenter.setNightTemperature(MIN_TEMPERATURE + progress);
+                }
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
     }
 
     @Override
@@ -80,13 +102,23 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
     }
 
     @Override
-    public void updateSettingDayTemp(int settingDayTemp) {
-        binding.settingTemp.setVisibility(View.VISIBLE);
+    public void updateSettingDayTemp(int dayTemperature) {
+        binding.settingDayTemp.setVisibility(View.VISIBLE);
         binding.dayTempSeekBar.setVisibility(View.VISIBLE);
-        binding.settingTemp.setText(
-                String.format("Setting temp: %d ℃", settingDayTemp)
+        binding.settingDayTemp.setText(
+                String.format("Day temp: %d ℃", dayTemperature)
         );
-        binding.dayTempSeekBar.setProgress(settingDayTemp - MIN_TEMPERATURE);
+        binding.dayTempSeekBar.setProgress(dayTemperature - MIN_TEMPERATURE);
+    }
+
+    @Override
+    public void updateSettingNightTemp(int nightTemperature) {
+        binding.settingNightTemp.setVisibility(View.VISIBLE);
+        binding.nightTempSeekBar.setVisibility(View.VISIBLE);
+        binding.settingNightTemp.setText(
+                String.format("Night temp: %d ℃", nightTemperature)
+        );
+        binding.nightTempSeekBar.setProgress(nightTemperature - MIN_TEMPERATURE);
     }
 
     @Override

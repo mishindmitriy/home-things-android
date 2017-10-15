@@ -10,6 +10,7 @@ import android.util.Log;
 
 public class PreferencesHelper {
     public static final String KEY_SETTING_DAY_TEMP = "setting_day_temperature";
+    public static final String KEY_SETTING_NIGHT_TEMP = "setting_night_temperature";
     private static PreferencesHelper instance;
     private final SharedPreferences preferences;
 
@@ -34,5 +35,16 @@ public class PreferencesHelper {
 
     public int getDaySettingTemperature() {
         return preferences.getInt(KEY_SETTING_DAY_TEMP, HeatingControlActivity.MIN_TEMPERATURE);
+    }
+
+    public void setNightTemperature(int temperature) {
+        Log.d("testtt", "set night temperature " + temperature);
+        preferences.edit()
+                .putInt(KEY_SETTING_NIGHT_TEMP, temperature)
+                .apply();
+    }
+
+    public int getNightSettingTemperature() {
+        return preferences.getInt(KEY_SETTING_NIGHT_TEMP, HeatingControlActivity.MIN_TEMPERATURE);
     }
 }

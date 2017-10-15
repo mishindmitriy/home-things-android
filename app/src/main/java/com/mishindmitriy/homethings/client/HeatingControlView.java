@@ -17,5 +17,7 @@ public interface HeatingControlView extends MvpView {
 
     void updateHumidityData(List<MonitoringData> monitoringData);
 
-    void updateSettingDayTemp(int settingDayTemp);
+    void updateSettingDayTemp(int dayTemperature);
+
+    void updateSettingNightTemp(int nightTemperature);
 }
