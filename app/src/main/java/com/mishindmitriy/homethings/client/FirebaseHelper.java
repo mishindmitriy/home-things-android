@@ -1,14 +1,12 @@
 package com.mishindmitriy.homethings.client;
 
+import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
@@ -26,16 +24,17 @@ import io.reactivex.functions.Predicate;
  */
 
 public class FirebaseHelper {
+    public static final int LIMIT = 100;
     public static Query getTempMonitoringReference() {
         return FirebaseDatabase.getInstance().getReference("heating/monitoring/temp")
                 .orderByChild("timestamp")
-                .limitToLast(30);
+                .limitToLast(LIMIT);
     }
 
     public static Query getHumidityMonitoringReference() {
         return FirebaseDatabase.getInstance().getReference("heating/monitoring/humidity")
                 .orderByChild("timestamp")
-                .limitToLast(30);
+                .limitToLast(LIMIT);
     }
 
     private static DatabaseReference getHostOnlineRef() {
@@ -72,27 +71,23 @@ public class FirebaseHelper {
         }, BackpressureStrategy.LATEST);
     }
 
-    public static Observable<List<MonitoringData>> createMonitoringObservable(final Query query) {
-        return createQueryObservable(query)
+    public static Observable<MonitoringData> createMonitoringObservable(final Query query) {
+        return createQuerySingleEventObservable(query)
                 .filter(new Predicate<DataSnapshot>() {
                     @Override
                     public boolean test(DataSnapshot dataSnapshot) throws Exception {
                         return dataSnapshot.exists();
                     }
                 })
-                .map(new Function<DataSnapshot, List<MonitoringData>>() {
+                .map(new Function<DataSnapshot, MonitoringData>() {
                     @Override
-                    public List<MonitoringData> apply(DataSnapshot dataSnapshot) throws Exception {
-                        final List<MonitoringData> dataList = new ArrayList<>();
-                        for (DataSnapshot ds : dataSnapshot.getChildren()) {
-                            dataList.add(ds.getValue(MonitoringData.class));
-                        }
-                        return dataList;
+                    public MonitoringData apply(DataSnapshot dataSnapshot) throws Exception {
+                        return dataSnapshot.getValue(MonitoringData.class);
                     }
                 });
     }
 
-    private static Observable<DataSnapshot> createQueryObservable(final Query query) {
+    private static Observable<DataSnapshot> createQueryValueObservable(final Query query) {
         return Observable.create(new ObservableOnSubscribe<DataSnapshot>() {
             @Override
             public void subscribe(final ObservableEmitter<DataSnapshot> e) throws Exception {
@@ -118,8 +113,61 @@ public class FirebaseHelper {
         });
     }
 
+    private static Observable<DataSnapshot> createQuerySingleEventObservable(final Query query) {
+        return Observable.create(new ObservableOnSubscribe<DataSnapshot>() {
+            @Override
+            public void subscribe(final ObservableEmitter<DataSnapshot> e) throws Exception {
+                final ValueEventListener listener = new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        //e.onNext(dataSnapshot);
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                        e.onError(databaseError.toException());
+                    }
+                };
+                final ChildEventListener childListener = new ChildEventListener() {
+                    @Override
+                    public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+                        e.onNext(dataSnapshot);
+                    }
+
+                    @Override
+                    public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+
+                    }
+
+                    @Override
+                    public void onChildRemoved(DataSnapshot dataSnapshot) {
+
+                    }
+
+                    @Override
+                    public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+
+                    }
+                };
+                query.addListenerForSingleValueEvent(listener);
+                query.addChildEventListener(childListener);
+                e.setCancellable(new Cancellable() {
+                    @Override
+                    public void cancel() throws Exception {
+                        query.removeEventListener(listener);
+                    }
+                });
+            }
+        });
+    }
+
     public static Observable<Double> createSettingDayTempObservable() {
-        return createQueryObservable(getSettingDayTempRef())
+        return createQueryValueObservable(getSettingDayTempRef())
                 .map(new Function<DataSnapshot, Double>() {
                     @Override
                     public Double apply(DataSnapshot dataSnapshot) throws Exception {
@@ -134,7 +182,7 @@ public class FirebaseHelper {
     }
 
     public static Observable<Double> createSettingNightTempObservable() {
-        return createQueryObservable(getSettingNightTempRef())
+        return createQueryValueObservable(getSettingNightTempRef())
                 .map(new Function<DataSnapshot, Double>() {
                     @Override
                     public Double apply(DataSnapshot dataSnapshot) throws Exception {
@@ -149,7 +197,7 @@ public class FirebaseHelper {
     }
 
     public static Observable<Double> createMaintainedTemperatureObservable() {
-        return createQueryObservable(
+        return createQueryValueObservable(
                 FirebaseDatabase.getInstance().getReference("heating/monitoring/maintainedTemperature")
         )
                 .map(new Function<DataSnapshot, Double>() {
@@ -162,7 +210,7 @@ public class FirebaseHelper {
     }
 
     public static Observable<Boolean> createBoilerIsRunObservable() {
-        return createQueryObservable(
+        return createQueryValueObservable(
                 FirebaseDatabase.getInstance().getReference("heating/monitoring/boilerIsRun")
         )
                 .map(new Function<DataSnapshot, Boolean>() {

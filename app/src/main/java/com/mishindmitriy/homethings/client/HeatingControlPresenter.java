@@ -136,6 +136,7 @@ public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
                 FirebaseHelper.createMonitoringObservable(
                         FirebaseHelper.getTempMonitoringReference()
                 )
+                        .buffer(FirebaseHelper.LIMIT, 1)
                         .subscribe(new Consumer<List<MonitoringData>>() {
                             @Override
                             public void accept(List<MonitoringData> monitoringData) throws Exception {
@@ -147,6 +148,7 @@ public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
                 FirebaseHelper.createMonitoringObservable(
                         FirebaseHelper.getHumidityMonitoringReference()
                 )
+                        .buffer(FirebaseHelper.LIMIT, 1)
                         .subscribe(new Consumer<List<MonitoringData>>() {
                             @Override
                             public void accept(List<MonitoringData> monitoringData) throws Exception {
