@@ -107,6 +107,11 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
                         .setColor(Color.BLUE)
                         .setSmooth(true)
         );
+        binding.chart.addData(
+                createEntryList(data, Field.boilerIsRun)
+                        .setColor(Color.GRAY)
+                        .setSmooth(true)
+        );
         binding.chart.show();
         binding.chart.setVisibility(View.VISIBLE);
     }
@@ -121,6 +126,9 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
                     break;
                 case temperature:
                     values[i] = (float) monitoringData.get(i).temperature;
+                    break;
+                case boilerIsRun:
+                    values[i] = monitoringData.get(i).boilerIsRun ? 100 : 0;
                     break;
                 case pressure:
                     break;
@@ -179,6 +187,6 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
     }
 
     enum Field {
-        temperature, humidity, pressure
+        temperature, humidity, boilerIsRun, pressure
     }
 }
