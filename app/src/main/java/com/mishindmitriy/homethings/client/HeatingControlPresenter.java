@@ -10,8 +10,10 @@ import com.google.firebase.database.Transaction;
 
 import java.util.List;
 
+import io.reactivex.Observable;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Function;
 import io.reactivex.subjects.BehaviorSubject;
 
 
@@ -27,8 +29,18 @@ public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
     public HeatingControlPresenter() {
         subscribeToFirebaseTempValues();
         subscribeToLocalTempValueAndSync();
+        Observable<MonitoringData> monitoringDataObservable = FirebaseHelper.createMonitoringObservable()
+                .publish()
+                .autoConnect();
         compositeDisposable.add(
-                FirebaseHelper.createMaintainedTemperatureObservable()
+                monitoringDataObservable
+                        .map(new Function<MonitoringData, Double>() {
+                            @Override
+                            public Double apply(MonitoringData monitoringData) throws Exception {
+                                return monitoringData.maintainedTemperature;
+                            }
+                        })
+                        .distinctUntilChanged()
                         .subscribe(new Consumer<Double>() {
                             @Override
                             public void accept(Double maintainedTemperature) throws Exception {
@@ -37,11 +49,29 @@ public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
                         })
         );
         compositeDisposable.add(
-                FirebaseHelper.createBoilerIsRunObservable()
+                monitoringDataObservable
+                        .map(new Function<MonitoringData, Boolean>() {
+                            @Override
+                            public Boolean apply(MonitoringData monitoringData) throws Exception {
+                                return monitoringData.boilerIsRun;
+                            }
+                        })
+                        .distinctUntilChanged()
                         .subscribe(new Consumer<Boolean>() {
                             @Override
                             public void accept(Boolean boilerIsRun) throws Exception {
                                 getViewState().updateBoilerIsRun(boilerIsRun);
+                            }
+                        })
+        );
+
+        compositeDisposable.add(
+                monitoringDataObservable
+                        .buffer(FirebaseHelper.LIMIT, 1)
+                        .subscribe(new Consumer<List<MonitoringData>>() {
+                            @Override
+                            public void accept(List<MonitoringData> monitoringData) throws Exception {
+                                getViewState().updateMonitoringData(monitoringData);
                             }
                         })
         );
@@ -129,30 +159,6 @@ public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
                             @Override
                             public void accept(Boolean online) throws Exception {
                                 getViewState().setHostOnline(online);
-                            }
-                        })
-        );
-        compositeDisposable.add(
-                FirebaseHelper.createMonitoringObservable(
-                        FirebaseHelper.getTempMonitoringReference()
-                )
-                        .buffer(FirebaseHelper.LIMIT, 1)
-                        .subscribe(new Consumer<List<MonitoringData>>() {
-                            @Override
-                            public void accept(List<MonitoringData> monitoringData) throws Exception {
-                                getViewState().updateTemperatureData(monitoringData);
-                            }
-                        })
-        );
-        compositeDisposable.add(
-                FirebaseHelper.createMonitoringObservable(
-                        FirebaseHelper.getHumidityMonitoringReference()
-                )
-                        .buffer(FirebaseHelper.LIMIT, 1)
-                        .subscribe(new Consumer<List<MonitoringData>>() {
-                            @Override
-                            public void accept(List<MonitoringData> monitoringData) throws Exception {
-                                getViewState().updateHumidityData(monitoringData);
                             }
                         })
         );

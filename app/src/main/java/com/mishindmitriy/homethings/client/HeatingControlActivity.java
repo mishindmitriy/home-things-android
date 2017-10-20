@@ -3,27 +3,19 @@ package com.mishindmitriy.homethings.client;
 import android.databinding.DataBindingUtil;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.support.annotation.ColorInt;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.style.ForegroundColorSpan;
 import android.view.View;
 import android.widget.SeekBar;
-import android.widget.TextView;
 
 import com.arellomobile.mvp.MvpAppCompatActivity;
 import com.arellomobile.mvp.presenter.InjectPresenter;
-import com.github.mikephil.charting.charts.LineChart;
-import com.github.mikephil.charting.components.AxisBase;
-import com.github.mikephil.charting.data.Entry;
-import com.github.mikephil.charting.data.LineData;
-import com.github.mikephil.charting.data.LineDataSet;
-import com.github.mikephil.charting.formatter.IAxisValueFormatter;
+import com.db.chart.model.LineSet;
 import com.mishindmitriy.homethings.client.databinding.ActivityHeatingControlBinding;
 
 import org.joda.time.DateTime;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class HeatingControlActivity extends MvpAppCompatActivity implements HeatingControlView {
@@ -101,23 +93,48 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
     }
 
     @Override
-    public void updateTemperatureData(final List<MonitoringData> data) {
-        updateData(
-                binding.temperatureChart,
-                binding.temperatureLastUpdate,
-                data,
-                Color.RED,
-                "Temperature",
-                "℃"
+    public void updateMonitoringData(final List<MonitoringData> data) {
+        binding.progressBar.setVisibility(View.GONE);
+        binding.chart.reset();
+        binding.chart.addData(
+                createEntryList(data, Field.temperature)
+                        .setColor(Color.RED)
+                        .setSmooth(true)
+                //.setFill(color)
         );
+        binding.chart.addData(
+                createEntryList(data, Field.humidity)
+                        .setColor(Color.BLUE)
+                        .setSmooth(true)
+        );
+        binding.chart.show();
+        binding.chart.setVisibility(View.VISIBLE);
     }
 
-    private List<Entry> createEntryList(List<MonitoringData> monitoringData) {
-        final List<Entry> entries = new ArrayList<>();
-        for (int i = 1; i < monitoringData.size(); i++) {
-            entries.add(new Entry(i, (float) monitoringData.get(i).getValue()));
+    private LineSet createEntryList(List<MonitoringData> monitoringData, Field field) {
+        final String[] labels = new String[monitoringData.size()];
+        final float[] values = new float[monitoringData.size()];
+        for (int i = 0; i < monitoringData.size(); i++) {
+            switch (field) {
+                case humidity:
+                    values[i] = (float) monitoringData.get(i).humidity;
+                    break;
+                case temperature:
+                    values[i] = (float) monitoringData.get(i).temperature;
+                    break;
+                case pressure:
+                    break;
+            }
+            final DateTime dateTime = monitoringData.get(i).getJodaTime();
+            if ((i + 1) % (monitoringData.size() / 5) == 0) {
+                labels[i] = DateTime.now().toLocalDate().isEqual(dateTime.toLocalDate())
+                        ? dateTime.toString("HH:mm:ss")
+                        : dateTime.toString("dd MMMM HH:mm:ss");
+            } else {
+                labels[i] = "";
+            }
         }
-        return entries;
+        return new LineSet(labels, values);
     }
 
     @Override
@@ -141,56 +158,6 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
     }
 
     @Override
-    public void updateHumidityData(final List<MonitoringData> data) {
-        updateData(
-                binding.humidityChart,
-                binding.humidityLastUpdate,
-                data,
-                Color.BLUE,
-                "Humidity",
-                "%"
-        );
-    }
-
-    private void updateData(LineChart chart,
-                            TextView lastUpdate,
-                            final List<MonitoringData> data,
-                            @ColorInt int color,
-                            String label,
-                            final String yAxisSymbol) {
-        binding.progressBar.setVisibility(View.GONE);
-        LineDataSet dataSet = new LineDataSet(createEntryList(data), label);
-        dataSet.setColor(color);
-        dataSet.setValueTextColor(Color.BLACK);
-        chart.getXAxis().setValueFormatter(new IAxisValueFormatter() {
-            @Override
-            public String getFormattedValue(float value, AxisBase axis) {
-                final DateTime dateTime = data.get((int) value).getJodaTime();
-                return DateTime.now().toLocalDate().isEqual(dateTime.toLocalDate())
-                        ? dateTime.toString("HH:mm:ss")
-                        : dateTime.toString("dd MMMM HH:mm:ss");
-            }
-        });
-        IAxisValueFormatter yFormatter = new IAxisValueFormatter() {
-            @Override
-            public String getFormattedValue(float value, AxisBase axis) {
-                return String.format("%.1f %s", value, yAxisSymbol);
-            }
-        };
-        chart.getAxisLeft().setValueFormatter(yFormatter);
-        chart.getAxisRight().setValueFormatter(yFormatter);
-        chart.setData(new LineData(dataSet));
-        chart.invalidate();
-        chart.setVisibility(View.VISIBLE);
-        lastUpdate.setVisibility(View.VISIBLE);
-        lastUpdate.setText(
-                String.format(
-                        "last update %s", data.get(data.size() - 1).getJodaTime().toString("dd MMMM HH:mm:ss")
-                )
-        );
-    }
-
-    @Override
     public void setHostOnline(boolean online) {
         final String offline = "offline";
         SpannableStringBuilder ssb = new SpannableStringBuilder(
@@ -209,5 +176,9 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
             );
         }
         binding.hostOnline.setText(ssb);
+    }
+
+    enum Field {
+        temperature, humidity, pressure
     }
 }

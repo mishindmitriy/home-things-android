@@ -7,24 +7,11 @@ import org.joda.time.DateTime;
  */
 
 public class MonitoringData {
-    private double value;
-    private long timestamp;
-
-    public long getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(long timestamp) {
-        this.timestamp = timestamp;
-    }
-
-    public double getValue() {
-        return value;
-    }
-
-    public void setValue(double value) {
-        this.value = value;
-    }
+    public double temperature;
+    public double maintainedTemperature;
+    public double humidity;
+    public boolean boilerIsRun;
+    public long timestamp;
 
     public DateTime getJodaTime() {
         return new DateTime(timestamp);

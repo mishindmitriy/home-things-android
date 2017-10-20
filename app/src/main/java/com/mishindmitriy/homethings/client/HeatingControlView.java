@@ -11,11 +11,9 @@ import java.util.List;
  */
 @StateStrategyType(SingleStateStrategy.class)
 public interface HeatingControlView extends MvpView {
-    void updateTemperatureData(List<MonitoringData> monitoringData);
+    void updateMonitoringData(List<MonitoringData> monitoringData);
 
     void setHostOnline(boolean online);
-
-    void updateHumidityData(List<MonitoringData> monitoringData);
 
     void updateSettingDayTemp(double dayTemperature);
 

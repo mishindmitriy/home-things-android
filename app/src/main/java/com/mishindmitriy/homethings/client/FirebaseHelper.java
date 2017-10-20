@@ -1,5 +1,7 @@
 package com.mishindmitriy.homethings.client;
 
+import android.util.Log;
+
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -24,23 +26,11 @@ import io.reactivex.functions.Predicate;
  */
 
 public class FirebaseHelper {
-    public static final int LIMIT = 100;
-    public static Query getTempMonitoringReference() {
-        return FirebaseDatabase.getInstance().getReference("heating/monitoring/temp")
-                .orderByChild("timestamp")
-                .limitToLast(LIMIT);
-    }
-
-    public static Query getHumidityMonitoringReference() {
-        return FirebaseDatabase.getInstance().getReference("heating/monitoring/humidity")
-                .orderByChild("timestamp")
-                .limitToLast(LIMIT);
-    }
+    public static final int LIMIT = 60;
 
     private static DatabaseReference getHostOnlineRef() {
         return FirebaseDatabase.getInstance().getReference("hostOnline");
     }
-
 
     public static Flowable<Boolean> createHostOnlineFlowable() {
         return Flowable.create(new FlowableOnSubscribe<Boolean>() {
@@ -71,8 +61,8 @@ public class FirebaseHelper {
         }, BackpressureStrategy.LATEST);
     }
 
-    public static Observable<MonitoringData> createMonitoringObservable(final Query query) {
-        return createQuerySingleEventObservable(query)
+    public static Observable<MonitoringData> createMonitoringObservable() {
+        return createQuerySingleEventObservable(getMonitoringRef())
                 .filter(new Predicate<DataSnapshot>() {
                     @Override
                     public boolean test(DataSnapshot dataSnapshot) throws Exception {
@@ -131,6 +121,7 @@ public class FirebaseHelper {
                 final ChildEventListener childListener = new ChildEventListener() {
                     @Override
                     public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+                        Log.d("testtt", "onChildAdded " + dataSnapshot);
                         e.onNext(dataSnapshot);
                     }
 
@@ -196,29 +187,7 @@ public class FirebaseHelper {
         return FirebaseDatabase.getInstance().getReference("heating/settings/nightTemp");
     }
 
-    public static Observable<Double> createMaintainedTemperatureObservable() {
-        return createQueryValueObservable(
-                FirebaseDatabase.getInstance().getReference("heating/monitoring/maintainedTemperature")
-        )
-                .map(new Function<DataSnapshot, Double>() {
-                    @Override
-                    public Double apply(DataSnapshot dataSnapshot) throws Exception {
-                        if (dataSnapshot.exists()) return dataSnapshot.getValue(double.class);
-                        else return 18.0;
-                    }
-                });
-    }
-
-    public static Observable<Boolean> createBoilerIsRunObservable() {
-        return createQueryValueObservable(
-                FirebaseDatabase.getInstance().getReference("heating/monitoring/boilerIsRun")
-        )
-                .map(new Function<DataSnapshot, Boolean>() {
-                    @Override
-                    public Boolean apply(DataSnapshot dataSnapshot) throws Exception {
-                        if (dataSnapshot.exists()) return dataSnapshot.getValue(boolean.class);
-                        else return false;
-                    }
-                });
+    public static DatabaseReference getMonitoringRef() {
+        return FirebaseDatabase.getInstance().getReference("heating/monitoring");
     }
 }
