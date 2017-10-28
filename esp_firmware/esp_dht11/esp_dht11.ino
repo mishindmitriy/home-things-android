@@ -6,8 +6,8 @@
 // Uncomment whatever type you're using!
 #define DHTTYPE DHT11   // DHT 11
 
-const char* ssid     = "ssid"; // Your ssid
-const char* password = "password"; // Your Password
+const char* ssid     = "MURKA"; // Your ssid
+const char* password = "awpl12345678"; // Your Password
 
 int pin = 2;
 
