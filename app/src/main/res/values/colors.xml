@@ -3,4 +3,7 @@
     <color name="colorPrimary">#3F51B5</color>
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
+    <color name="maintainedTemperature">#ffaf69</color>
+    <color name="humidity">#74c2fa</color>
+    <color name="temperature">#ff5e55</color>
 </resources>

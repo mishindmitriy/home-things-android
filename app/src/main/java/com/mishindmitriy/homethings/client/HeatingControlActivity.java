@@ -3,6 +3,7 @@ package com.mishindmitriy.homethings.client;
 import android.databinding.DataBindingUtil;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.support.v4.content.ContextCompat;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.style.ForegroundColorSpan;
@@ -77,34 +78,23 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
     }
 
     @Override
-    public void updateMaintainedTemperature(double maintainedTemperature) {
-        binding.maintainedTemperature.setVisibility(View.VISIBLE);
-        binding.maintainedTemperature.setText(
-                String.format("Maintained temp: %.1f ℃", maintainedTemperature)
-        );
-    }
-
-    @Override
-    public void updateBoilerIsRun(boolean boilerIsRun) {
-        binding.boilerIsRun.setVisibility(View.VISIBLE);
-        binding.boilerIsRun.setText(
-                String.format("Boiler is %s", boilerIsRun ? "run" : "not run")
-        );
-    }
-
-    @Override
     public void updateMonitoringData(final List<MonitoringData> data) {
         binding.progressBar.setVisibility(View.GONE);
         binding.chart.reset();
         binding.chart.addData(
+                createEntryList(data, Field.maintainedTemperature)
+                        .setSmooth(true)
+                        .setFill(ContextCompat.getColor(this, R.color.maintainedTemperature))
+        );
+        binding.chart.addData(
                 createEntryList(data, Field.temperature)
-                        .setColor(Color.RED)
+                        .setColor(ContextCompat.getColor(this, R.color.temperature))
                         .setSmooth(true)
                 //.setFill(color)
         );
         binding.chart.addData(
                 createEntryList(data, Field.humidity)
-                        .setColor(Color.BLUE)
+                        .setColor(ContextCompat.getColor(this, R.color.humidity))
                         .setSmooth(true)
         );
         binding.chart.addData(
@@ -128,16 +118,19 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
                     values[i] = (float) monitoringData.get(i).temperature;
                     break;
                 case boilerIsRun:
-                    values[i] = monitoringData.get(i).boilerIsRun ? 100 : 0;
+                    values[i] = monitoringData.get(i).boilerIsRun ? 5 : 0;
                     break;
                 case pressure:
                     break;
+                case maintainedTemperature:
+                    values[i] = (float) monitoringData.get(i).maintainedTemperature;
+                    break;
             }
             final DateTime dateTime = monitoringData.get(i).getJodaTime();
-            if ((i + 1) % (monitoringData.size() / 5) == 0) {
+            if ((i + 1) % (monitoringData.size() / 8) == 0) {
                 labels[i] = DateTime.now().toLocalDate().isEqual(dateTime.toLocalDate())
-                        ? dateTime.toString("HH:mm:ss")
-                        : dateTime.toString("dd MMMM HH:mm:ss");
+                        ? dateTime.toString("HH:mm")
+                        : dateTime.toString("dd MMMM HH");
             } else {
                 labels[i] = "";
             }
@@ -187,6 +180,6 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
     }
 
     enum Field {
-        temperature, humidity, boilerIsRun, pressure
+        temperature, humidity, boilerIsRun, pressure, maintainedTemperature
     }
 }

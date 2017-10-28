@@ -18,8 +18,4 @@ public interface HeatingControlView extends MvpView {
     void updateSettingDayTemp(double dayTemperature);
 
     void updateSettingNightTemp(double nightTemperature);
-
-    void updateMaintainedTemperature(double maintainedTemperature);
-
-    void updateBoilerIsRun(boolean boilerIsRun);
 }
