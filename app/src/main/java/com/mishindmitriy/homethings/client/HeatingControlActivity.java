@@ -118,7 +118,7 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
                     values[i] = (float) monitoringData.get(i).temperature;
                     break;
                 case boilerIsRun:
-                    values[i] = monitoringData.get(i).boilerIsRun ? 5 : 0;
+                    values[i] = monitoringData.get(i).boilerIsRun ? 2 : 0;
                     break;
                 case pressure:
                     break;

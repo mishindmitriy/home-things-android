@@ -4,12 +4,12 @@ import com.arellomobile.mvp.InjectViewState;
 import com.arellomobile.mvp.MvpPresenter;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.MutableData;
 import com.google.firebase.database.Transaction;
 
 import java.util.List;
 
+import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.functions.Consumer;
 import io.reactivex.subjects.BehaviorSubject;
@@ -76,6 +76,7 @@ public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
     private void subscribeToFirebaseTempValues() {
         compositeDisposable.add(
                 FirebaseHelper.createSettingDayTempObservable()
+                        .observeOn(AndroidSchedulers.mainThread())
                         .subscribe(new Consumer<Double>() {
                             @Override
                             public void accept(Double temperature) throws Exception {
@@ -85,6 +86,7 @@ public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
         );
         compositeDisposable.add(
                 FirebaseHelper.createSettingNightTempObservable()
+                        .observeOn(AndroidSchedulers.mainThread())
                         .subscribe(new Consumer<Double>() {
                             @Override
                             public void accept(Double temperature) throws Exception {
@@ -103,6 +105,7 @@ public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
         super.onFirstViewAttach();
         compositeDisposable.add(
                 FirebaseHelper.createHostOnlineFlowable()
+                        .observeOn(AndroidSchedulers.mainThread())
                         .subscribe(new Consumer<Boolean>() {
                             @Override
                             public void accept(Boolean online) throws Exception {
@@ -115,6 +118,7 @@ public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
         compositeDisposable.add(
                 FirebaseHelper.createMonitoringObservable()
                         .buffer(FirebaseHelper.LIMIT, 1)
+                        .observeOn(AndroidSchedulers.mainThread())
                         .subscribe(new Consumer<List<MonitoringData>>() {
                             @Override
                             public void accept(List<MonitoringData> monitoringData) throws Exception {
@@ -122,22 +126,6 @@ public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
                             }
                         })
         );
-    }
-
-    @Override
-    public void attachView(HeatingControlView view) {
-        if (getAttachedViews().size() == 0) {
-            FirebaseDatabase.getInstance().goOnline();
-        }
-        super.attachView(view);
-    }
-
-    @Override
-    public void detachView(HeatingControlView view) {
-        super.detachView(view);
-        if (getAttachedViews().size() == 0) {
-            FirebaseDatabase.getInstance().goOffline();
-        }
     }
 
     @Override

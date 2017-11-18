@@ -1,7 +1,5 @@
 package com.mishindmitriy.homethings.client;
 
-import android.util.Log;
-
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -20,6 +18,7 @@ import io.reactivex.ObservableOnSubscribe;
 import io.reactivex.functions.Cancellable;
 import io.reactivex.functions.Function;
 import io.reactivex.functions.Predicate;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by Dmitry on 30.09.17.
@@ -62,7 +61,7 @@ public class FirebaseHelper {
     }
 
     public static Observable<MonitoringData> createMonitoringObservable() {
-        return createQuerySingleEventObservable(getMonitoringRef())
+        return createQuerySingleEventObservable(getMonitoringRef().orderByChild("timestamp").limitToLast(LIMIT))
                 .filter(new Predicate<DataSnapshot>() {
                     @Override
                     public boolean test(DataSnapshot dataSnapshot) throws Exception {
@@ -121,7 +120,6 @@ public class FirebaseHelper {
                 final ChildEventListener childListener = new ChildEventListener() {
                     @Override
                     public void onChildAdded(DataSnapshot dataSnapshot, String s) {
-                        Log.d("testtt", "onChildAdded " + dataSnapshot);
                         e.onNext(dataSnapshot);
                     }
 
@@ -151,10 +149,12 @@ public class FirebaseHelper {
                     @Override
                     public void cancel() throws Exception {
                         query.removeEventListener(listener);
+                        query.removeEventListener(childListener);
                     }
                 });
             }
-        });
+        })
+                .observeOn(Schedulers.newThread());
     }
 
     public static Observable<Double> createSettingDayTempObservable() {
