@@ -27,16 +27,16 @@ def moxyVersion = '1.5.3'
 dependencies {
     implementation "com.android.support:appcompat-v7:$supportLibraryVersion"
     implementation 'com.android.support.constraint:constraint-layout:1.0.2'
-    compile "net.danlew:android.joda:$jodaTimeVersion"
-    compile "io.reactivex.rxjava2:rxjava:$rxJavaVersion"
-    compile "io.reactivex.rxjava2:rxandroid:$rxAndroidVersion"
-    compile "com.arello-mobile:moxy:$moxyVersion"
+    implementation "net.danlew:android.joda:$jodaTimeVersion"
+    implementation "io.reactivex.rxjava2:rxjava:$rxJavaVersion"
+    implementation "io.reactivex.rxjava2:rxandroid:$rxAndroidVersion"
+    implementation "com.arello-mobile:moxy:$moxyVersion"
     annotationProcessor "com.arello-mobile:moxy-compiler:$moxyVersion"
-    compile "com.arello-mobile:moxy-android:$moxyVersion"
-    compile "com.arello-mobile:moxy-app-compat:$moxyVersion"
-    compile "com.google.firebase:firebase-core:$playServicesVersion"
-    compile "com.google.firebase:firebase-database:$playServicesVersion"
-    compile 'com.diogobernardino:williamchart:2.5.0'
+    implementation "com.arello-mobile:moxy-android:$moxyVersion"
+    implementation "com.arello-mobile:moxy-app-compat:$moxyVersion"
+    implementation "com.google.firebase:firebase-core:$playServicesVersion"
+    implementation "com.google.firebase:firebase-database:$playServicesVersion"
+    implementation 'com.diogobernardino:williamchart:2.5.0'
 }
 
 apply plugin: 'com.google.gms.google-services'

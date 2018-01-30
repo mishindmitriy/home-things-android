@@ -8,6 +8,7 @@ import com.google.firebase.database.MutableData;
 import com.google.firebase.database.Transaction;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
@@ -21,22 +22,23 @@ import io.reactivex.subjects.BehaviorSubject;
 @InjectViewState
 public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
     private final CompositeDisposable compositeDisposable = new CompositeDisposable();
-    private final BehaviorSubject<Integer> settingDayTempSubject = BehaviorSubject.create();
-    private final BehaviorSubject<Integer> settingNightTempSubject = BehaviorSubject.create();
+    private final BehaviorSubject<Double> settingDayTempSubject = BehaviorSubject.create();
+    private final BehaviorSubject<Double> settingNightTempSubject = BehaviorSubject.create();
 
 
     private void subscribeToLocalTempValueAndSync() {
         compositeDisposable.add(
                 settingDayTempSubject
+                        .debounce(500, TimeUnit.MILLISECONDS)
                         .distinctUntilChanged()
-                        .subscribe(new Consumer<Integer>() {
+                        .subscribe(new Consumer<Double>() {
                             @Override
-                            public void accept(final Integer integer) throws Exception {
+                            public void accept(final Double temp) throws Exception {
                                 FirebaseHelper.getSettingDayTempRef()
                                         .runTransaction(new Transaction.Handler() {
                                             @Override
                                             public Transaction.Result doTransaction(MutableData mutableData) {
-                                                mutableData.setValue(integer);
+                                                mutableData.setValue(temp);
                                                 return Transaction.success(mutableData);
                                             }
 
@@ -50,10 +52,11 @@ public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
         );
         compositeDisposable.add(
                 settingNightTempSubject
+                        .debounce(500, TimeUnit.MILLISECONDS)
                         .distinctUntilChanged()
-                        .subscribe(new Consumer<Integer>() {
+                        .subscribe(new Consumer<Double>() {
                             @Override
-                            public void accept(final Integer integer) throws Exception {
+                            public void accept(final Double integer) throws Exception {
                                 FirebaseHelper.getSettingNightTempRef()
                                         .runTransaction(new Transaction.Handler() {
                                             @Override
@@ -96,7 +99,7 @@ public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
         );
     }
 
-    public void setDayTemperature(int dayTemperature) {
+    public void setDayTemperature(double dayTemperature) {
         settingDayTempSubject.onNext(dayTemperature);
     }
 
@@ -134,7 +137,7 @@ public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
         super.onDestroy();
     }
 
-    public void setNightTemperature(int nightTemperature) {
+    public void setNightTemperature(double nightTemperature) {
         settingNightTempSubject.onNext(nightTemperature);
     }
 }

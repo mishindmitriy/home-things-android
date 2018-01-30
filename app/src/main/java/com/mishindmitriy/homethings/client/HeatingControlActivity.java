@@ -20,8 +20,9 @@ import org.joda.time.DateTime;
 import java.util.List;
 
 public class HeatingControlActivity extends MvpAppCompatActivity implements HeatingControlView {
-    public static final int MAX_TEMPERATURE = 30;
-    public static final int MIN_TEMPERATURE = 18;
+    public static final double MAX_TEMPERATURE = 23.0;
+    public static final double MIN_TEMPERATURE = 19.0;
+    private static final double SCALE = 5.0;
     @InjectPresenter
     HeatingControlPresenter presenter;
     private ActivityHeatingControlBinding binding;
@@ -30,17 +31,16 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = DataBindingUtil.setContentView(this, R.layout.activity_heating_control);
-        final int temperatureDelta = MAX_TEMPERATURE - MIN_TEMPERATURE;
+        final double temperatureDelta = MAX_TEMPERATURE - MIN_TEMPERATURE;
         binding.dayTempSeekBar.incrementProgressBy(1);
-        binding.dayTempSeekBar.setMax(temperatureDelta);
-        binding.dayTempSeekBar.setProgress(MIN_TEMPERATURE);
+        binding.dayTempSeekBar.setMax((int) (temperatureDelta * SCALE));
+        binding.dayTempSeekBar.setProgress((int) Math.round(MIN_TEMPERATURE * SCALE));
         binding.dayTempSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
-                    presenter.setDayTemperature(MIN_TEMPERATURE + progress);
+                    presenter.setDayTemperature(MIN_TEMPERATURE + (double) progress / SCALE);
                 }
-
             }
 
             @Override
@@ -54,15 +54,14 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
             }
         });
         binding.nightTempSeekBar.incrementProgressBy(1);
-        binding.nightTempSeekBar.setMax(temperatureDelta);
-        binding.nightTempSeekBar.setProgress(MIN_TEMPERATURE);
+        binding.nightTempSeekBar.setMax((int) (temperatureDelta * SCALE));
+        binding.nightTempSeekBar.setProgress((int) Math.round(MIN_TEMPERATURE * SCALE));
         binding.nightTempSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
-                    presenter.setNightTemperature(MIN_TEMPERATURE + progress);
+                    presenter.setNightTemperature(MIN_TEMPERATURE + (double) progress / SCALE);
                 }
-
             }
 
             @Override
@@ -145,7 +144,7 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
         binding.settingDayTemp.setText(
                 String.format("Day temp: %.1f ℃", dayTemperature)
         );
-        binding.dayTempSeekBar.setProgress((int) dayTemperature - MIN_TEMPERATURE);
+        binding.dayTempSeekBar.setProgress((int) Math.round((dayTemperature - MIN_TEMPERATURE) * SCALE));
     }
 
     @Override
@@ -155,7 +154,7 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
         binding.settingNightTemp.setText(
                 String.format("Night temp: %.1f ℃", nightTemperature)
         );
-        binding.nightTempSeekBar.setProgress((int) nightTemperature - MIN_TEMPERATURE);
+        binding.nightTempSeekBar.setProgress((int) Math.round((nightTemperature - MIN_TEMPERATURE) * SCALE));
     }
 
     @Override
