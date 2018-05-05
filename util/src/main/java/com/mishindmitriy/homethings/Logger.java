@@ -9,5 +9,6 @@ import android.util.Log;
 public class Logger {
     public static void l(String s) {
         Log.d("testtt", s);
+        //FirebaseHelper.getLogReference().push().setValue(s);
     }
 }

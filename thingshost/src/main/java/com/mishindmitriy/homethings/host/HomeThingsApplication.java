@@ -1,8 +1,9 @@
-package com.mishindmitriy.homethings;
+package com.mishindmitriy.homethings.host;
 
 import android.app.Application;
 
 import com.google.firebase.FirebaseApp;
+import com.mishindmitriy.homethings.FirebaseHelper;
 
 import net.danlew.android.joda.JodaTimeAndroid;
 
@@ -16,5 +17,6 @@ public class HomeThingsApplication extends Application {
         super.onCreate();
         JodaTimeAndroid.init(this);
         FirebaseApp.initializeApp(this);
+        FirebaseHelper.getHostOnlineRef().onDisconnect().setValue(false);
     }
 }

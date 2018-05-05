@@ -1,12 +1,30 @@
-package com.mishindmitriy.homethings;
+package com.mishindmitriy.homethings.host;
 
 /**
  * Created by mishindmitriy on 11.10.2017.
  */
 
-public class MonitoringData {
+public class SensorsData {
     private double temperature = 0;
     private double humidity = 0;
+    private double pressure = 0;
+    private int ppm = 0;
+
+    public double getPressure() {
+        return pressure;
+    }
+
+    public void setPressure(double pressure) {
+        this.pressure = pressure;
+    }
+
+    public int getPpm() {
+        return ppm;
+    }
+
+    public void setPpm(int ppm) {
+        this.ppm = ppm;
+    }
 
     public double getTemperature() {
         return temperature;

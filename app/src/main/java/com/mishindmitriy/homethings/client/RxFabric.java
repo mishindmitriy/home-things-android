@@ -4,9 +4,9 @@ import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
+import com.mishindmitriy.homethings.MonitoringData;
 
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
@@ -20,22 +20,24 @@ import io.reactivex.functions.Function;
 import io.reactivex.functions.Predicate;
 import io.reactivex.schedulers.Schedulers;
 
+import static com.mishindmitriy.homethings.FirebaseHelper.createQueryValueObservable;
+import static com.mishindmitriy.homethings.FirebaseHelper.getDayTempReference;
+import static com.mishindmitriy.homethings.FirebaseHelper.getHostOnlineRef;
+import static com.mishindmitriy.homethings.FirebaseHelper.getMonitoringReference;
+import static com.mishindmitriy.homethings.FirebaseHelper.getNightTempReference;
+
 /**
  * Created by Dmitry on 30.09.17.
  */
 
-public class FirebaseHelper {
+public class RxFabric {
     public static final int LIMIT = 60;
-
-    private static DatabaseReference getHostOnlineRef() {
-        return FirebaseDatabase.getInstance().getReference("hostOnline");
-    }
 
     public static Flowable<Boolean> createHostOnlineFlowable() {
         return Flowable.create(new FlowableOnSubscribe<Boolean>() {
             @Override
             public void subscribe(final FlowableEmitter<Boolean> e) throws Exception {
-                final DatabaseReference ref = FirebaseHelper.getHostOnlineRef();
+                final DatabaseReference ref = getHostOnlineRef();
                 final ValueEventListener listener = new ValueEventListener() {
                     @Override
                     public void onDataChange(DataSnapshot dataSnapshot) {
@@ -61,7 +63,9 @@ public class FirebaseHelper {
     }
 
     public static Observable<MonitoringData> createMonitoringObservable() {
-        return createQuerySingleEventObservable(getMonitoringRef().orderByChild("timestamp").limitToLast(LIMIT))
+        return createQuerySingleEventObservable(getMonitoringReference()
+                .orderByChild("timestamp")
+                .limitToLast(LIMIT))
                 .filter(new Predicate<DataSnapshot>() {
                     @Override
                     public boolean test(DataSnapshot dataSnapshot) throws Exception {
@@ -76,31 +80,6 @@ public class FirebaseHelper {
                 });
     }
 
-    private static Observable<DataSnapshot> createQueryValueObservable(final Query query) {
-        return Observable.create(new ObservableOnSubscribe<DataSnapshot>() {
-            @Override
-            public void subscribe(final ObservableEmitter<DataSnapshot> e) throws Exception {
-                final ValueEventListener listener = new ValueEventListener() {
-                    @Override
-                    public void onDataChange(DataSnapshot dataSnapshot) {
-                        e.onNext(dataSnapshot);
-                    }
-
-                    @Override
-                    public void onCancelled(DatabaseError databaseError) {
-                        e.onError(databaseError.toException());
-                    }
-                };
-                query.addValueEventListener(listener);
-                e.setCancellable(new Cancellable() {
-                    @Override
-                    public void cancel() throws Exception {
-                        query.removeEventListener(listener);
-                    }
-                });
-            }
-        });
-    }
 
     private static Observable<DataSnapshot> createQuerySingleEventObservable(final Query query) {
         return Observable.create(new ObservableOnSubscribe<DataSnapshot>() {
@@ -158,7 +137,7 @@ public class FirebaseHelper {
     }
 
     public static Observable<Double> createSettingDayTempObservable() {
-        return createQueryValueObservable(getSettingDayTempRef())
+        return createQueryValueObservable(getDayTempReference())
                 .map(new Function<DataSnapshot, Double>() {
                     @Override
                     public Double apply(DataSnapshot dataSnapshot) throws Exception {
@@ -166,14 +145,10 @@ public class FirebaseHelper {
                         else return 18.0;
                     }
                 });
-    }
-
-    public static DatabaseReference getSettingDayTempRef() {
-        return FirebaseDatabase.getInstance().getReference("heating/settings/dayTemp");
     }
 
     public static Observable<Double> createSettingNightTempObservable() {
-        return createQueryValueObservable(getSettingNightTempRef())
+        return createQueryValueObservable(getNightTempReference())
                 .map(new Function<DataSnapshot, Double>() {
                     @Override
                     public Double apply(DataSnapshot dataSnapshot) throws Exception {
@@ -183,11 +158,5 @@ public class FirebaseHelper {
                 });
     }
 
-    public static DatabaseReference getSettingNightTempRef() {
-        return FirebaseDatabase.getInstance().getReference("heating/settings/nightTemp");
-    }
 
-    public static DatabaseReference getMonitoringRef() {
-        return FirebaseDatabase.getInstance().getReference("heating/monitoring");
-    }
 }

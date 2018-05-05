@@ -13,15 +13,17 @@ import android.widget.SeekBar;
 import com.arellomobile.mvp.MvpAppCompatActivity;
 import com.arellomobile.mvp.presenter.InjectPresenter;
 import com.db.chart.model.LineSet;
+import com.mishindmitriy.homethings.MonitoringData;
 import com.mishindmitriy.homethings.client.databinding.ActivityHeatingControlBinding;
 
 import org.joda.time.DateTime;
 
 import java.util.List;
 
+import static com.mishindmitriy.homethings.Config.MAX_TEMPERATURE;
+import static com.mishindmitriy.homethings.Config.MIN_TEMPERATURE;
+
 public class HeatingControlActivity extends MvpAppCompatActivity implements HeatingControlView {
-    public static final double MAX_TEMPERATURE = 23.0;
-    public static final double MIN_TEMPERATURE = 19.0;
     private static final double SCALE = 5.0;
     @InjectPresenter
     HeatingControlPresenter presenter;
@@ -77,6 +79,11 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
     }
 
     @Override
+    public void showLastSensorsData(MonitoringData data) {
+
+    }
+
+    @Override
     public void updateMonitoringData(final List<MonitoringData> data) {
         binding.progressBar.setVisibility(View.GONE);
         binding.chart.reset();
@@ -125,7 +132,7 @@ public class HeatingControlActivity extends MvpAppCompatActivity implements Heat
                     values[i] = (float) monitoringData.get(i).maintainedTemperature;
                     break;
             }
-            final DateTime dateTime = monitoringData.get(i).getJodaTime();
+            final DateTime dateTime = new DateTime(monitoringData.get(i).timestamp);
             if ((i + 1) % (monitoringData.size() / 8) == 0) {
                 labels[i] = DateTime.now().toLocalDate().isEqual(dateTime.toLocalDate())
                         ? dateTime.toString("HH:mm")

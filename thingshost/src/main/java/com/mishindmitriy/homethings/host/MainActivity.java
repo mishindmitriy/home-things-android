@@ -1,4 +1,4 @@
-package com.mishindmitriy.homethings;
+package com.mishindmitriy.homethings.host;
 
 import android.app.Activity;
 import android.os.Bundle;
@@ -6,8 +6,11 @@ import android.support.annotation.NonNull;
 import android.text.TextUtils;
 
 import com.google.android.things.pio.Gpio;
-import com.google.android.things.pio.PeripheralManagerService;
+import com.google.android.things.pio.PeripheralManager;
 import com.google.gson.Gson;
+import com.mishindmitriy.homethings.FirebaseHelper;
+import com.mishindmitriy.homethings.Logger;
+import com.mishindmitriy.homethings.MonitoringData;
 
 import org.reactivestreams.Publisher;
 
@@ -20,12 +23,12 @@ import io.reactivex.Flowable;
 import io.reactivex.FlowableEmitter;
 import io.reactivex.FlowableOnSubscribe;
 import io.reactivex.disposables.CompositeDisposable;
-import io.reactivex.disposables.Disposable;
 import io.reactivex.flowables.ConnectableFlowable;
 import io.reactivex.functions.BiFunction;
 import io.reactivex.functions.Cancellable;
 import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
+import io.reactivex.functions.Function3;
 import io.reactivex.functions.Predicate;
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -34,38 +37,41 @@ import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 
+import static com.mishindmitriy.homethings.Config.PASCAL_FACTOR;
+
 public class MainActivity extends Activity {
     private final OkHttpClient httpClient = new OkHttpClient.Builder()
-            .readTimeout(4, TimeUnit.SECONDS)
-            .connectTimeout(4, TimeUnit.SECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
+            .connectTimeout(15, TimeUnit.SECONDS)
             .build();
-    private final PeripheralManagerService peripheralManagerService = new PeripheralManagerService();
     private final CompositeDisposable compositeDisposable = new CompositeDisposable();
     private Gpio gpio;
 
-    private void log(String s) {
-        Logger.l(s);
-    }
-
-    private Flowable<MonitoringData> createDataObservable() {
-        return Flowable.interval(10, TimeUnit.SECONDS)
+    private Flowable<SensorsData> createIntervalSensorsObservable() {
+        final int timeout = 20;
+        return Flowable.interval(timeout, TimeUnit.SECONDS)
                 .flatMap(new Function<Long, Publisher<String>>() {
                     @Override
                     public Publisher<String> apply(Long aLong) throws Exception {
-                        return createReadDataObservable();
+                        return createSensorsDataObservable()
+                                .timeout(timeout, TimeUnit.SECONDS)
+                                .onErrorReturnItem("");
                     }
                 })
-                .map(new Function<String, MonitoringData>() {
+                .filter(new Predicate<String>() {
                     @Override
-                    public MonitoringData apply(String s) throws Exception {
-                        if (TextUtils.isEmpty(s)) {
-                            return new MonitoringData();
-                        } else {
-                            try {
-                                return new Gson().fromJson(s, MonitoringData.class);
-                            } catch (NumberFormatException e) {
-                                return new MonitoringData();
-                            }
+                    public boolean test(String s) throws Exception {
+                        return !TextUtils.isEmpty(s);
+                    }
+                })
+                .map(new Function<String, SensorsData>() {
+                    @Override
+                    public SensorsData apply(String s) throws Exception {
+                        Logger.l("json from esp: " + s);
+                        try {
+                            return new Gson().fromJson(s, SensorsData.class);
+                        } catch (NumberFormatException e) {
+                            return new SensorsData();
                         }
                     }
                 });
@@ -74,14 +80,13 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        compositeDisposable.add(FirebaseHelper.createSettingHostOnlineDisposable());
-        startMonitoring();
         setupGPIO();
+        startMonitoring();
     }
 
     private void setupGPIO() {
         try {
-            gpio = peripheralManagerService.openGpio("BCM4");
+            gpio = PeripheralManager.getInstance().openGpio("BCM4");
             gpio.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
             gpio.setActiveType(Gpio.ACTIVE_HIGH);
         } catch (IOException e) {
@@ -89,7 +94,7 @@ public class MainActivity extends Activity {
         }
     }
 
-    private Publisher<String> createReadDataObservable() {
+    private Flowable<String> createSensorsDataObservable() {
         return Flowable.create(new FlowableOnSubscribe<String>() {
             @Override
             public void subscribe(final FlowableEmitter<String> emitter) throws Exception {
@@ -99,23 +104,27 @@ public class MainActivity extends Activity {
                                 .url("http://192.168.1.131")
                                 .build()
                 );
+                Logger.l("request esp data");
                 call.enqueue(new Callback() {
                     @Override
                     public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                        Logger.l("request esp failed");
                         e.printStackTrace();
                         if (!emitter.isCancelled()) {
                             emitter.onError(e);
+                            emitter.onComplete();
                         }
                     }
 
                     @Override
                     public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                        log("onResponse success " + response.isSuccessful());
+                        Logger.l("esp onResponse success " + response.isSuccessful());
                         if (response.isSuccessful()) {
                             ResponseBody body = response.body();
                             try {
                                 if (body != null && !emitter.isCancelled()) {
                                     emitter.onNext(body.string());
+                                    emitter.onComplete();
                                 }
                             } finally {
                                 if (body != null) {
@@ -125,6 +134,7 @@ public class MainActivity extends Activity {
                         } else {
                             if (!emitter.isCancelled()) {
                                 emitter.onError(new IOException());
+                                emitter.onComplete();
                             }
                         }
                     }
@@ -132,39 +142,68 @@ public class MainActivity extends Activity {
                 emitter.setCancellable(new Cancellable() {
                     @Override
                     public void cancel() throws Exception {
-                        log("esp request canceled");
+                        Logger.l("esp request canceled");
                         call.cancel();
                     }
                 });
             }
-        }, BackpressureStrategy.LATEST)
-                .timeout(10, TimeUnit.SECONDS)
-                .onErrorReturnItem("");
+        }, BackpressureStrategy.LATEST);
     }
 
     private void startMonitoring() {
-        Flowable<MonitoringData> monitoringDataFlowable = createDataObservable()
+        final Flowable<SensorsData> sensorsDataFlowable = createIntervalSensorsObservable()
+                .onBackpressureLatest()
+                .publish()
+                .autoConnect();
+
+        final Flowable<Double> settingTempFlowable = RxFabric.createSettingTempFlowable()
                 .onBackpressureLatest()
                 .publish()
                 .autoConnect();
 
         compositeDisposable.add(
-                createBoilerControlDisposable(monitoringDataFlowable)
-        );
-
-        compositeDisposable.add(
-                createHumidityObservable(monitoringDataFlowable).subscribe()
+                Flowable.combineLatest(
+                        sensorsDataFlowable,
+                        settingTempFlowable,
+                        createBoilerControlFlowable(sensorsDataFlowable, settingTempFlowable)
+                                .doOnNext(new Consumer<Boolean>() {
+                                    @Override
+                                    public void accept(Boolean needBoilerRun) throws Exception {
+                                        runBoiler(needBoilerRun);
+                                    }
+                                }),
+                        new Function3<SensorsData, Double, Boolean, MonitoringData>() {
+                            @Override
+                            public MonitoringData apply(SensorsData sensorsData, Double maintainedTemperature, Boolean boilerIsRun) throws Exception {
+                                MonitoringData data = new MonitoringData();
+                                data.boilerIsRun = boilerIsRun;
+                                data.maintainedTemperature = maintainedTemperature;
+                                data.temperature = sensorsData.getTemperature();
+                                data.humidity = sensorsData.getHumidity();
+                                data.pressure = sensorsData.getPressure() * PASCAL_FACTOR;
+                                data.ppm = sensorsData.getPpm();
+                                data.timestamp = System.currentTimeMillis();
+                                return data;
+                            }
+                        }
+                )
+                        .subscribe(new Consumer<MonitoringData>() {
+                            @Override
+                            public void accept(MonitoringData data) throws Exception {
+                                FirebaseHelper.pushData(data);
+                            }
+                        })
         );
     }
 
-    private Disposable createBoilerControlDisposable(Flowable<MonitoringData> monitoringDataFlowable) {
+    private Flowable<Boolean> createBoilerControlFlowable(Flowable<SensorsData> sensorsDataFlowable,
+                                                          Flowable<Double> settingTempFlowable) {
         return ConnectableFlowable.combineLatest(
-                createTempMonitoringObservable(monitoringDataFlowable)
+                createTempMonitoringObservable(sensorsDataFlowable)
                         .buffer(5, 1)
                         .map(new Function<List<Double>, Double>() {
                             @Override
                             public Double apply(List<Double> doubles) throws Exception {
-                                log("buffer doubles " + doubles);
                                 double sum = 0;
                                 for (Double d : doubles) {
                                     sum += d;
@@ -172,27 +211,19 @@ public class MainActivity extends Activity {
                                 return sum / doubles.size();
                             }
                         }),
-                FirebaseHelper.createSettingTempObservable(),
+                settingTempFlowable,
                 new BiFunction<Double, Double, Boolean>() {
                     @Override
                     public Boolean apply(Double realTemp, Double settingTemp) throws Exception {
-                        log("real temp " + realTemp + "; maintained temp " + settingTemp);
+                        Logger.l("real average temp from 5 values " + realTemp + "; maintained temp " + settingTemp);
                         return realTemp < settingTemp;
                     }
                 }
-        )
-                .doOnNext(new Consumer<Boolean>() {
-                    @Override
-                    public void accept(Boolean needBoilerRun) throws Exception {
-                        FirebaseHelper.getBoilerIsRunRef().setValue(needBoilerRun);
-                        runBoiler(needBoilerRun);
-                    }
-                })
-                .subscribe();
+        ).distinctUntilChanged();
     }
 
     private void runBoiler(boolean needBoilerRun) {
-        log("need boiler run " + needBoilerRun);
+        Logger.l("need boiler run " + needBoilerRun);
         try {
             gpio.setValue(needBoilerRun);
         } catch (IOException e) {
@@ -200,35 +231,11 @@ public class MainActivity extends Activity {
         }
     }
 
-    private Flowable<Double> createHumidityObservable(Flowable<MonitoringData> monitoringDataFlowable) {
+    private Flowable<Double> createTempMonitoringObservable(Flowable<SensorsData> monitoringDataFlowable) {
         return monitoringDataFlowable
-                .map(new Function<MonitoringData, Double>() {
+                .map(new Function<SensorsData, Double>() {
                     @Override
-                    public Double apply(MonitoringData data) throws Exception {
-                        return data.getHumidity();
-                    }
-                })
-                .filter(new Predicate<Double>() {
-                    @Override
-                    public boolean test(Double aDouble) throws Exception {
-                        return aDouble > 0;
-                    }
-                })
-                .distinctUntilChanged()
-                .doOnNext(new Consumer<Double>() {
-                    @Override
-                    public void accept(Double humidity) throws Exception {
-                        log("humidity " + humidity);
-                        FirebaseHelper.updateHumidity(humidity);
-                    }
-                });
-    }
-
-    private Flowable<Double> createTempMonitoringObservable(Flowable<MonitoringData> monitoringDataFlowable) {
-        return monitoringDataFlowable
-                .map(new Function<MonitoringData, Double>() {
-                    @Override
-                    public Double apply(MonitoringData data) throws Exception {
+                    public Double apply(SensorsData data) throws Exception {
                         return data.getTemperature();
                     }
                 })
@@ -237,19 +244,20 @@ public class MainActivity extends Activity {
                     public boolean test(Double aDouble) throws Exception {
                         return aDouble > 0;
                     }
-                })
-                .doOnNext(new Consumer<Double>() {
-                    @Override
-                    public void accept(Double temp) throws Exception {
-                        log("temp " + temp);
-                        FirebaseHelper.updateTemp(temp);
-                    }
                 });
     }
 
     @Override
     protected void onDestroy() {
         compositeDisposable.dispose();
+        if (gpio != null) {
+            try {
+                gpio.close();
+                gpio = null;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
         super.onDestroy();
     }
 }

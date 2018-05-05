@@ -6,14 +6,19 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.MutableData;
 import com.google.firebase.database.Transaction;
+import com.mishindmitriy.homethings.MonitoringData;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.functions.Consumer;
 import io.reactivex.subjects.BehaviorSubject;
+
+import static com.mishindmitriy.homethings.FirebaseHelper.getDayTempReference;
+import static com.mishindmitriy.homethings.FirebaseHelper.getNightTempReference;
 
 
 /**
@@ -25,51 +30,48 @@ public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
     private final BehaviorSubject<Double> settingDayTempSubject = BehaviorSubject.create();
     private final BehaviorSubject<Double> settingNightTempSubject = BehaviorSubject.create();
 
-
     private void subscribeToLocalTempValueAndSync() {
         compositeDisposable.add(
                 settingDayTempSubject
-                        .debounce(500, TimeUnit.MILLISECONDS)
                         .distinctUntilChanged()
+                        .debounce(500, TimeUnit.MILLISECONDS)
                         .subscribe(new Consumer<Double>() {
                             @Override
                             public void accept(final Double temp) throws Exception {
-                                FirebaseHelper.getSettingDayTempRef()
-                                        .runTransaction(new Transaction.Handler() {
-                                            @Override
-                                            public Transaction.Result doTransaction(MutableData mutableData) {
-                                                mutableData.setValue(temp);
-                                                return Transaction.success(mutableData);
-                                            }
+                                getDayTempReference().runTransaction(new Transaction.Handler() {
+                                    @Override
+                                    public Transaction.Result doTransaction(MutableData mutableData) {
+                                        mutableData.setValue(temp);
+                                        return Transaction.success(mutableData);
+                                    }
 
-                                            @Override
-                                            public void onComplete(DatabaseError databaseError, boolean b, DataSnapshot dataSnapshot) {
+                                    @Override
+                                    public void onComplete(DatabaseError databaseError, boolean b, DataSnapshot dataSnapshot) {
 
-                                            }
-                                        });
+                                    }
+                                });
                             }
                         })
         );
         compositeDisposable.add(
                 settingNightTempSubject
-                        .debounce(500, TimeUnit.MILLISECONDS)
                         .distinctUntilChanged()
+                        .debounce(500, TimeUnit.MILLISECONDS)
                         .subscribe(new Consumer<Double>() {
                             @Override
                             public void accept(final Double integer) throws Exception {
-                                FirebaseHelper.getSettingNightTempRef()
-                                        .runTransaction(new Transaction.Handler() {
-                                            @Override
-                                            public Transaction.Result doTransaction(MutableData mutableData) {
-                                                mutableData.setValue(integer);
-                                                return Transaction.success(mutableData);
-                                            }
+                                getNightTempReference().runTransaction(new Transaction.Handler() {
+                                    @Override
+                                    public Transaction.Result doTransaction(MutableData mutableData) {
+                                        mutableData.setValue(integer);
+                                        return Transaction.success(mutableData);
+                                    }
 
-                                            @Override
-                                            public void onComplete(DatabaseError databaseError, boolean b, DataSnapshot dataSnapshot) {
+                                    @Override
+                                    public void onComplete(DatabaseError databaseError, boolean b, DataSnapshot dataSnapshot) {
 
-                                            }
-                                        });
+                                    }
+                                });
                             }
                         })
         );
@@ -78,7 +80,7 @@ public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
 
     private void subscribeToFirebaseTempValues() {
         compositeDisposable.add(
-                FirebaseHelper.createSettingDayTempObservable()
+                RxFabric.createSettingDayTempObservable()
                         .observeOn(AndroidSchedulers.mainThread())
                         .subscribe(new Consumer<Double>() {
                             @Override
@@ -88,7 +90,7 @@ public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
                         })
         );
         compositeDisposable.add(
-                FirebaseHelper.createSettingNightTempObservable()
+                RxFabric.createSettingNightTempObservable()
                         .observeOn(AndroidSchedulers.mainThread())
                         .subscribe(new Consumer<Double>() {
                             @Override
@@ -107,7 +109,7 @@ public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
     protected void onFirstViewAttach() {
         super.onFirstViewAttach();
         compositeDisposable.add(
-                FirebaseHelper.createHostOnlineFlowable()
+                RxFabric.createHostOnlineFlowable()
                         .observeOn(AndroidSchedulers.mainThread())
                         .subscribe(new Consumer<Boolean>() {
                             @Override
@@ -118,9 +120,20 @@ public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
         );
         subscribeToFirebaseTempValues();
         subscribeToLocalTempValueAndSync();
+        Observable<MonitoringData> dataObservable = RxFabric.createMonitoringObservable()
+                .publish()
+                .autoConnect();
         compositeDisposable.add(
-                FirebaseHelper.createMonitoringObservable()
-                        .buffer(FirebaseHelper.LIMIT, 1)
+                dataObservable.subscribe(new Consumer<MonitoringData>() {
+                    @Override
+                    public void accept(MonitoringData data) throws Exception {
+                        getViewState().showLastSensorsData(data);
+                    }
+                })
+        );
+        compositeDisposable.add(
+                dataObservable
+                        .buffer(RxFabric.LIMIT, 1)
                         .observeOn(AndroidSchedulers.mainThread())
                         .subscribe(new Consumer<List<MonitoringData>>() {
                             @Override
