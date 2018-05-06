@@ -11,10 +11,11 @@ import com.mishindmitriy.homethings.MonitoringData;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Function;
 import io.reactivex.subjects.BehaviorSubject;
 
 import static com.mishindmitriy.homethings.FirebaseHelper.getDayTempReference;
@@ -29,6 +30,8 @@ public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
     private final CompositeDisposable compositeDisposable = new CompositeDisposable();
     private final BehaviorSubject<Double> settingDayTempSubject = BehaviorSubject.create();
     private final BehaviorSubject<Double> settingNightTempSubject = BehaviorSubject.create();
+
+    private Disposable dataDisposable;
 
     private void subscribeToLocalTempValueAndSync() {
         compositeDisposable.add(
@@ -120,33 +123,47 @@ public class HeatingControlPresenter extends MvpPresenter<HeatingControlView> {
         );
         subscribeToFirebaseTempValues();
         subscribeToLocalTempValueAndSync();
-        Observable<MonitoringData> dataObservable = RxFabric.createMonitoringObservable()
-                .publish()
-                .autoConnect();
+
         compositeDisposable.add(
-                dataObservable.subscribe(new Consumer<MonitoringData>() {
-                    @Override
-                    public void accept(MonitoringData data) throws Exception {
-                        getViewState().showLastSensorsData(data);
-                    }
-                })
-        );
-        compositeDisposable.add(
-                dataObservable
-                        .buffer(RxFabric.LIMIT, 1)
+                RxFabric.createMonitoringObservable(1)
                         .observeOn(AndroidSchedulers.mainThread())
-                        .subscribe(new Consumer<List<MonitoringData>>() {
+                        .subscribe(new Consumer<MonitoringData>() {
                             @Override
-                            public void accept(List<MonitoringData> monitoringData) throws Exception {
-                                getViewState().updateMonitoringData(monitoringData);
+                            public void accept(MonitoringData data) throws Exception {
+                                getViewState().showLastSensorsData(data);
                             }
                         })
         );
     }
 
+    public void loadDataForTime(long millis) {
+        getViewState().resetData();
+        if (dataDisposable != null) dataDisposable.dispose();
+        long now = System.currentTimeMillis();
+        int limit = (int) ((now - millis) / TimeUnit.SECONDS.toMillis(20));
+        int count = Math.round((float) limit / (float) RxFabric.LIMIT);
+        dataDisposable = RxFabric.createMonitoringObservable(limit)
+                .buffer(count)
+                .map(new Function<List<MonitoringData>, MonitoringData>() {
+                    @Override
+                    public MonitoringData apply(List<MonitoringData> monitoringData) throws Exception {
+                        return monitoringData.get(monitoringData.size() - 1);
+                    }
+                })
+                .buffer(limit / count, 1)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Consumer<List<MonitoringData>>() {
+                    @Override
+                    public void accept(List<MonitoringData> monitoringData) throws Exception {
+                        getViewState().updateMonitoringData(monitoringData);
+                    }
+                });
+    }
+
     @Override
     public void onDestroy() {
         compositeDisposable.dispose();
+        if (dataDisposable != null) dataDisposable.dispose();
         super.onDestroy();
     }
 

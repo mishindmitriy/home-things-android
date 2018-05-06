@@ -6,6 +6,7 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
+import com.mishindmitriy.homethings.Config;
 import com.mishindmitriy.homethings.MonitoringData;
 
 import io.reactivex.BackpressureStrategy;
@@ -31,7 +32,7 @@ import static com.mishindmitriy.homethings.FirebaseHelper.getNightTempReference;
  */
 
 public class RxFabric {
-    public static final int LIMIT = 60;
+    public static final int LIMIT = 100;
 
     public static Flowable<Boolean> createHostOnlineFlowable() {
         return Flowable.create(new FlowableOnSubscribe<Boolean>() {
@@ -62,10 +63,12 @@ public class RxFabric {
         }, BackpressureStrategy.LATEST);
     }
 
-    public static Observable<MonitoringData> createMonitoringObservable() {
-        return createQuerySingleEventObservable(getMonitoringReference()
-                .orderByChild("timestamp")
-                .limitToLast(LIMIT))
+    public static Observable<MonitoringData> createMonitoringObservable(int limit) {
+        return createQuerySingleEventObservable(
+                getMonitoringReference()
+                        .orderByChild("timestamp")
+                        .limitToLast(limit)
+        )
                 .filter(new Predicate<DataSnapshot>() {
                     @Override
                     public boolean test(DataSnapshot dataSnapshot) throws Exception {
@@ -79,7 +82,6 @@ public class RxFabric {
                     }
                 });
     }
-
 
     private static Observable<DataSnapshot> createQuerySingleEventObservable(final Query query) {
         return Observable.create(new ObservableOnSubscribe<DataSnapshot>() {
@@ -142,7 +144,7 @@ public class RxFabric {
                     @Override
                     public Double apply(DataSnapshot dataSnapshot) throws Exception {
                         if (dataSnapshot.exists()) return dataSnapshot.getValue(double.class);
-                        else return 18.0;
+                        else return Config.MIN_TEMPERATURE;
                     }
                 });
     }
@@ -153,7 +155,7 @@ public class RxFabric {
                     @Override
                     public Double apply(DataSnapshot dataSnapshot) throws Exception {
                         if (dataSnapshot.exists()) return dataSnapshot.getValue(double.class);
-                        else return 18.0;
+                        else return Config.MIN_TEMPERATURE;
                     }
                 });
     }

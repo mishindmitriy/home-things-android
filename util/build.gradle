@@ -1,5 +1,15 @@
 apply plugin: 'com.android.library'
 
+buildscript {
+    repositories {
+        google()
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.google.gms:google-services:3.2.1'
+    }
+}
+
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
 
@@ -20,8 +30,8 @@ android {
 }
 
 dependencies {
-    api "com.google.firebase:firebase-core:$playServicesVersion"
-    api "com.google.firebase:firebase-database:$playServicesVersion"
+    implementation  "com.google.firebase:firebase-core:15.0.2"
+    implementation  "com.google.firebase:firebase-database:15.0.1"
     implementation "net.danlew:android.joda:$jodaTimeVersion"
     implementation "io.reactivex.rxjava2:rxjava:$rxJavaVersion"
     implementation "io.reactivex.rxjava2:rxandroid:$rxAndroidVersion"

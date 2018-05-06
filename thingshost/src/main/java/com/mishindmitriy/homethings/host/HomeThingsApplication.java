@@ -17,6 +17,7 @@ public class HomeThingsApplication extends Application {
         super.onCreate();
         JodaTimeAndroid.init(this);
         FirebaseApp.initializeApp(this);
+        FirebaseHelper.getHostOnlineRef().setValue(true);
         FirebaseHelper.getHostOnlineRef().onDisconnect().setValue(false);
     }
 }

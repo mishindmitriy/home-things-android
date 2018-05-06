@@ -21,4 +21,6 @@ public interface HeatingControlView extends MvpView {
     void updateSettingNightTemp(double nightTemperature);
 
     void showLastSensorsData(MonitoringData data);
+
+    void resetData();
 }
