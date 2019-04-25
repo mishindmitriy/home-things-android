@@ -29,14 +29,14 @@ dependencies {
     implementation("com.android.support:design:$supportLibraryVersion") {
         exclude group: 'com.android.support', module: 'support-cardview-v7'
     }
-    implementation 'com.android.support.constraint:constraint-layout:1.1.0'
+    implementation 'com.android.support.constraint:constraint-layout:1.1.3'
     implementation "com.arello-mobile:moxy:$moxyVersion"
     annotationProcessor "com.arello-mobile:moxy-compiler:$moxyVersion"
     implementation "com.arello-mobile:moxy-android:$moxyVersion"
     implementation "com.arello-mobile:moxy-app-compat:$moxyVersion"
     implementation 'com.diogobernardino:williamchart:2.5.0'
-    implementation  "com.google.firebase:firebase-core:15.0.2"
-    implementation  "com.google.firebase:firebase-database:15.0.1"
+    implementation  "com.google.firebase:firebase-core:16.0.4"
+    implementation  "com.google.firebase:firebase-database:16.0.3"
     implementation "net.danlew:android.joda:$jodaTimeVersion"
     implementation "io.reactivex.rxjava2:rxjava:$rxJavaVersion"
     implementation "io.reactivex.rxjava2:rxandroid:$rxAndroidVersion"

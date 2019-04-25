@@ -7,6 +7,7 @@ import com.google.firebase.database.ValueEventListener;
 import com.mishindmitriy.homethings.Logger;
 
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.reactivestreams.Publisher;
 
 import java.util.concurrent.TimeUnit;
@@ -20,6 +21,7 @@ import io.reactivex.functions.Function;
 import io.reactivex.functions.Function3;
 
 import static com.mishindmitriy.homethings.Config.DAY_START_HOUR;
+import static com.mishindmitriy.homethings.Config.HOST_TIMEZONE_OFFSET;
 import static com.mishindmitriy.homethings.Config.MIN_TEMPERATURE;
 import static com.mishindmitriy.homethings.Config.NIGHT_START_HOUR;
 import static com.mishindmitriy.homethings.FirebaseHelper.getDayTempReference;
@@ -29,8 +31,8 @@ import static com.mishindmitriy.homethings.FirebaseHelper.getNightTempReference;
  * Created by mishindmitriy on 23.09.2017.
  */
 
-public class RxFabric {
-    public static Flowable<Double> createSettingTempFlowable() {
+class RxFabric {
+    static Flowable<Double> createSettingTempFlowable() {
         return Flowable.combineLatest(
                 createTempFlowable(getDayTempReference()).startWith(MIN_TEMPERATURE),
                 createTempFlowable(getNightTempReference()).startWith(MIN_TEMPERATURE),
@@ -39,14 +41,16 @@ public class RxFabric {
                     @Override
                     public Double apply(Double settingDayTemp, Double settingNightTemp, DateTime now) throws Exception {
                         Logger.l("day temp: " + settingDayTemp + "; night temp " + settingNightTemp);
-                        return isDay(now) ? settingDayTemp : settingNightTemp;
+                        return isDay(now.withZone(DateTimeZone.forOffsetHours(HOST_TIMEZONE_OFFSET)))
+                                ? settingDayTemp : settingNightTemp;
                     }
 
                     private boolean isDay(DateTime now) {
-                        return now.getHourOfDay() >= DAY_START_HOUR && now.getHourOfDay() < NIGHT_START_HOUR;
+                        final int hourOfDay = now.getHourOfDay();
+                        Logger.l("hour of day: " + hourOfDay);
+                        return hourOfDay >= DAY_START_HOUR && hourOfDay < NIGHT_START_HOUR;
                     }
                 }
-
         ).distinctUntilChanged();
     }
 

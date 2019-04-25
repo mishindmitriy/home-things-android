@@ -86,7 +86,7 @@ public class MainActivity extends Activity {
 
     private void setupGPIO() {
         try {
-            gpio = PeripheralManager.getInstance().openGpio("BCM4");
+            gpio = PeripheralManager.getInstance().openGpio("BCM14");
             gpio.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
             gpio.setActiveType(Gpio.ACTIVE_HIGH);
         } catch (IOException e) {
@@ -120,15 +120,10 @@ public class MainActivity extends Activity {
                     public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                         Logger.l("esp onResponse success " + response.isSuccessful());
                         if (response.isSuccessful()) {
-                            ResponseBody body = response.body();
-                            try {
+                            try (ResponseBody body = response.body()) {
                                 if (body != null && !emitter.isCancelled()) {
                                     emitter.onNext(body.string());
                                     emitter.onComplete();
-                                }
-                            } finally {
-                                if (body != null) {
-                                    body.close();
                                 }
                             }
                         } else {
